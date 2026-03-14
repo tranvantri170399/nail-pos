@@ -13,9 +13,6 @@ class ApiEndpoints {
   // ── Staffs ───────────────────────────────────────────────
   static const String staffs          = '/staffs';
 
-  // ── Services ─────────────────────────────────────────────
-  static const String services        = '/services';
-
   // ── Customers ────────────────────────────────────────────
   static const String customers       = '/customers';
   static const String customerByPhone = '/customers/phone';
@@ -23,4 +20,23 @@ class ApiEndpoints {
   // ── Appointments ─────────────────────────────────────────
   static const String appointments     = '/appointments';
   static const String appointmentByDate = '/appointments/by-date';
+
+  // Salons
+  static const String salons = '/salons';
+  static String salonById(int id) => '/salons/$id';
+
+  // Service Categories
+  static const String serviceCategories = '/service-categories';
+  static String serviceCategoryById(int id) => '/service-categories/$id';
+
+  // Services
+  static const String services = '/services';
+  static String serviceById(int id) => '/services/$id';
+  static const String servicesByCategory = '/services/by-category';
+
+  // Transactions
+  static const String transactions = '/transactions';
+  static const String transactionReport = '/transactions/report';
+  static String transactionByAppointment(int id) => '/transactions/appointment/$id';
+  static String transactionRefund(int id) => '/transactions/$id/refund';
 }

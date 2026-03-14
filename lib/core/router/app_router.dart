@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
-import '../../features/appointment/screens/appointment_screen.dart';
 import '../../features/pos/screens/pos_screen.dart';
 
 // ════════════════════════════════════════════════════

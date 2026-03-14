@@ -12,18 +12,24 @@ class PosRepository {
   PosRepository(this._dio);
 
   // ── Lấy danh sách nhân viên ─────────────────────────
-  Future<List<Staff>> getStaffs() async {
-    final response = await _dio.get(ApiEndpoints.staffs);
+  Future<List<Staff>> getStaffs(int salonId) async {
+    final response = await _dio.get(
+      ApiEndpoints.staffs,
+      queryParameters: {'salonId': salonId},  // ← thêm dòng này
+    );
     return (response.data as List)
         .map((json) => Staff.fromJson(json))
         .toList();
   }
 
   // ── Lấy danh sách dịch vụ ───────────────────────────
-  Future<List<NailService>> getServices() async {
-    final response = await _dio.get(ApiEndpoints.services);
+  Future<List<Service>> getServices(int salonId) async {
+    final response = await _dio.get(
+        ApiEndpoints.services,
+      queryParameters: {'salonId': salonId},
+    );
     return (response.data as List)
-        .map((json) => NailService.fromJson(json))
+        .map((json) => Service.fromJson(json))
         .toList();
   }
 

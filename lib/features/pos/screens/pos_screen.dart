@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:nail_pos/features/pos/screens/services_panel.dart';
+import '../../../core/models/service_category.dart';
+import '../../service/services_provider.dart';
 import '../providers/pos_provider.dart';
 import '../../../core/models/staff.dart';
 import '../../../core/models/service.dart';
@@ -20,6 +23,7 @@ class PosScreen extends ConsumerStatefulWidget {
 
 class _PosScreenState extends ConsumerState<PosScreen> {
   final _phoneCtrl = TextEditingController();
+  final int salonId = 1;
 
   @override
   void dispose() {
@@ -110,21 +114,19 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 ),
                 Container(width: 1, color: const Color(0xFF252535)),
                 // Cột phải: Dịch vụ + Khách + Tổng tiền
+                // ② Services Panel
                 Expanded(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _ServiceGrid(pos: pos),
-                      ),
-                      Container(height: 1, color: const Color(0xFF252535)),
-                      _CustomerSearch(
-                        controller: _phoneCtrl,
-                        pos: pos,
-                      ),
-                      Container(height: 1, color: const Color(0xFF252535)),
-                      _OrderSummary(pos: pos),
-                    ],
+                  child: ServicesPanel(
+                    salonId: salonId,
+                    selectedIds: pos.selectedServices.map((s) => s.id).toList(),
+                      onServiceToggled: (service) {
+                        ref.read(posProvider.notifier).toggleService(service);
+                      }
                   ),
+                ),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.35,
+                  child: _OrderSummary(pos: pos,orientation: orientation,phoneCtrl: _phoneCtrl,),
                 ),
               ],
             );
@@ -139,7 +141,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   Container(height: 1, color: const Color(0xFF252535)),
                   _CustomerSearch(controller: _phoneCtrl, pos: pos),
                   Container(height: 1, color: const Color(0xFF252535)),
-                  _OrderSummary(pos: pos),
+                  _OrderSummary(pos: pos,orientation: orientation,phoneCtrl: _phoneCtrl),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -391,16 +393,29 @@ class _StaffCard extends StatelessWidget {
 // ════════════════════════════════════════════════════
 // SERVICE GRID
 // ════════════════════════════════════════════════════
-class _ServiceGrid extends ConsumerWidget {
+class _ServiceGrid extends ConsumerStatefulWidget {
   final PosState pos;
   final bool compact;
   const _ServiceGrid({required this.pos, this.compact = false});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ServiceGrid> createState() => _ServiceGridState();
+}
+
+class _ServiceGridState extends ConsumerState<_ServiceGrid> {
+  int? _selectedCategoryId; // null = tất cả
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(
+      categoriesWithServicesProvider(widget.pos.salonId),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text('CHỌN DỊCH VỤ', style: TextStyle(
@@ -409,25 +424,231 @@ class _ServiceGrid extends ConsumerWidget {
             letterSpacing: 1.2,
           )),
         ),
-        if (pos.isLoadingServices)
-          const Center(child: CircularProgressIndicator(color: Color(0xFFFF6B9D)))
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: GridView.builder(
-              scrollDirection: Axis.vertical,
+
+        // Search bar
+        _buildSearchBar(),
+
+        // Category tabs + Grid
+        categoriesAsync.when(
+          loading: () => const Expanded(
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFFFF6B9D)),
+            ),
+          ),
+          error: (err, _) => Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Color(0xFFFF6B9D), size: 32),
+                  const SizedBox(height: 8),
+                  Text(err.toString(), style: const TextStyle(color: Color(0xFF555566), fontSize: 12)),
+                  TextButton(
+                    onPressed: () => ref.refresh(categoriesWithServicesProvider(widget.pos.salonId)),
+                    child: const Text('Thử lại', style: TextStyle(color: Color(0xFFFF6B9D))),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          data: (categories) => Expanded(
+            child: Column(
+              children: [
+                _buildCategoryTabs(categories),
+                const SizedBox(height: 8),
+                Expanded(child: _buildServiceGrid(categories)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ① Search bar
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: TextField(
+        onChanged: (val) => setState(() => _searchQuery = val),
+        style: const TextStyle(color: Colors.white, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: 'Tìm dịch vụ...',
+          hintStyle: const TextStyle(color: Color(0xFF555566), fontSize: 13),
+          prefixIcon: const Icon(Icons.search, size: 16, color: Color(0xFF555566)),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, size: 14, color: Color(0xFF555566)),
+            onPressed: () => setState(() => _searchQuery = ''),
+          )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          filled: true,
+          fillColor: const Color(0xFF151520),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF252535)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF252535), width: 0.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFFF6B9D), width: 1),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ② Category tabs
+  Widget _buildCategoryTabs(List<ServiceCategory> categories) {
+    return SizedBox(
+      height: 32,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: categories.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildTab(
+              label: 'Tất cả',
+              color: const Color(0xFFFF6B9D),
+              isSelected: _selectedCategoryId == null,
+              onTap: () => setState(() => _selectedCategoryId = null),
+            );
+          }
+          final cat = categories[index - 1];
+          final color = _hexToColor(cat.color);
+          return _buildTab(
+            label: cat.name,
+            color: color,
+            isSelected: _selectedCategoryId == cat.id,
+            onTap: () => setState(() => _selectedCategoryId = cat.id),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTab({
+    required String label,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.15) : const Color(0xFF151520),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFF252535),
+            width: isSelected ? 1.5 : 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 6, height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? color : const Color(0xFF555566),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ③ Service grid grouped theo category
+  Widget _buildServiceGrid(List<ServiceCategory> categories) {
+    final filtered = categories
+        .where((cat) => _selectedCategoryId == null || cat.id == _selectedCategoryId)
+        .map((cat) {
+      final services = cat.services
+          .where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+      return MapEntry(cat, services);
+    })
+        .where((e) => e.value.isNotEmpty)
+        .toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text(
+          'Không tìm thấy dịch vụ',
+          style: TextStyle(color: const Color(0xFF555566), fontSize: 13),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        final cat = filtered[index].key;
+        final services = filtered[index].value;
+        final catColor = _hexToColor(cat.color);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Category header
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, top: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(color: catColor, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    cat.name.toUpperCase(),
+                    style: TextStyle(
+                      color: catColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${services.length}',
+                    style: const TextStyle(color: Color(0xFF555566), fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+
+            // Grid services
+            GridView.builder(
               shrinkWrap: true,
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 2.8,
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
               ),
-              itemCount: pos.serviceList.length,
+              itemCount: services.length,
               itemBuilder: (_, i) {
-                final service = pos.serviceList[i];
-                final isSelected = pos.selectedServices
+                final service = services[i];
+                final isSelected = widget.pos.selectedServices
                     .any((s) => s.id == service.id);
                 return _ServiceCard(
                   service: service,
@@ -436,17 +657,20 @@ class _ServiceGrid extends ConsumerWidget {
                 );
               },
             ),
-          ),
-      ],
+
+            const SizedBox(height: 16),
+          ],
+        );
+      },
     );
   }
 }
 
 // ════════════════════════════════════════════════════
-// SERVICE CARD
+// SERVICE CARD — giữ style cũ, thêm fallback color
 // ════════════════════════════════════════════════════
 class _ServiceCard extends StatelessWidget {
-  final NailService service;
+  final Service service;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -458,7 +682,10 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _hexToColor(service.color);
+    // Fallback nếu color null
+    final color = service.color != null
+        ? _hexToColor(service.color!)
+        : const Color(0xFFFF6B9D);
 
     return GestureDetector(
       onTap: onTap,
@@ -504,6 +731,15 @@ class _ServiceCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Helper — dùng chung trong file
+Color _hexToColor(String hex) {
+  try {
+    return Color(int.parse(hex.replaceAll('#', '0xFF')));
+  } catch (_) {
+    return const Color(0xFFFF6B9D);
   }
 }
 
@@ -652,29 +888,43 @@ class _CustomerCard extends StatelessWidget {
 // ════════════════════════════════════════════════════
 class _OrderSummary extends ConsumerWidget {
   final PosState pos;
-  const _OrderSummary({required this.pos});
+  final  Orientation orientation;
+  final TextEditingController phoneCtrl;
+  const _OrderSummary({required this.pos,required this.orientation, required this.phoneCtrl});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Danh sách dịch vụ đã chọn
-          if (pos.selectedServices.isNotEmpty) ...[
-            ...pos.selectedServices.map((s) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  const Text('•  ', style: TextStyle(color: Color(0xFF555566))),
-                  Expanded(child: Text(s.name, style: const TextStyle(color: Color(0xFF888899), fontSize: 13))),
-                  Text('${_vnd.format(s.price)}đ', style: const TextStyle(color: Color(0xFF888899), fontSize: 13)),
-                ],
-              ),
-            )),
-            const Divider(color: Color(0xFF252535)),
+          if(orientation == Orientation.landscape)...[
+            _CustomerSearch(
+              controller: phoneCtrl,
+              pos: pos,
+            ),
           ],
+          // Danh sách dịch vụ đã chọn
+          Expanded(
+            child: Column(
+              children: [
+                if (pos.selectedServices.isNotEmpty) ...[
+                  ...pos.selectedServices.map((s) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4,top: 5),
+                    child: Row(
+                      children: [
+                        const Text('•  ', style: TextStyle(color: Color(0xFF555566))),
+                        Expanded(child: Text(s.name, style: const TextStyle(color: Color(0xFF888899), fontSize: 13))),
+                        Text('${_vnd.format(s.price)}đ', style: const TextStyle(color: Color(0xFF888899), fontSize: 13)),
+                      ],
+                    ),
+                  )),
+                  const Divider(color: Color(0xFF252535)),
+                ],
+              ],
+            ),
+          ),
 
           // Tổng
           Row(
@@ -715,7 +965,6 @@ class _OrderSummary extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-
           // Nút thanh toán
           SizedBox(
             width: double.infinity,
@@ -746,12 +995,4 @@ class _OrderSummary extends ConsumerWidget {
       ),
     );
   }
-}
-
-// ════════════════════════════════════════════════════
-// HELPER
-// ════════════════════════════════════════════════════
-Color _hexToColor(String hex) {
-  final h = hex.replaceAll('#', '');
-  return Color(int.parse('FF$h', radix: 16));
 }

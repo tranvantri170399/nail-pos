@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/staff.dart';
 import '../../../core/models/service.dart';
 import '../../../core/models/customer.dart';
+import '../../../core/providers/app_data_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../repositories/pos_repository.dart';
-import '../../../core/api/api_client.dart';
 
 // ════════════════════════════════════════════════════
 // POS STATE — Toàn bộ trạng thái màn hình POS
@@ -14,12 +14,13 @@ import '../../../core/api/api_client.dart';
 
 class PosState {
   // Dữ liệu từ API
+  final int salonId;
   final List<Staff> staffList;
-  final List<NailService> serviceList;
+  final List<Service> serviceList;
 
   // Lựa chọn hiện tại
   final Staff? selectedStaff;
-  final List<NailService> selectedServices;
+  final List<Service> selectedServices;
   final Customer? selectedCustomer;
 
   // UI state
@@ -31,6 +32,7 @@ class PosState {
   final String? checkoutSuccess; // Mã hoá đơn sau khi thanh toán
 
   const PosState({
+    this.salonId = 1,
     this.staffList = const [],
     this.serviceList = const [],
     this.selectedStaff,
@@ -58,10 +60,11 @@ class PosState {
 
   // ── CopyWith để update state ─────────────────────────
   PosState copyWith({
+    int? salonId,
     List<Staff>? staffList,
-    List<NailService>? serviceList,
+    List<Service>? serviceList,
     Staff? selectedStaff,
-    List<NailService>? selectedServices,
+    List<Service>? selectedServices,
     Customer? selectedCustomer,
     bool? isLoadingStaffs,
     bool? isLoadingServices,
@@ -96,32 +99,49 @@ class PosState {
 
 class PosNotifier extends StateNotifier<PosState> {
   final PosRepository _repo;
+  final Ref _ref;
 
-  PosNotifier(this._repo) : super(const PosState()) {
-    loadInitialData();
+  PosNotifier(this._repo, this._ref) : super(const PosState()) {
+    _initSalonId();  // ← init salonId trước
+    _initFromCache();
+  }
+  // ✅ Đúng — dùng currentUserProvider
+  void _initSalonId() {
+    final user = _ref.read(currentUserProvider);
+    if (user != null) {
+      state = state.copyWith(salonId: user.salonId ?? 1);
+    }
+  }
+  // Load staffs + services khi mở màn hình
+  void _initFromCache() {
+    final appData = _ref.read(appDataProvider); // ← đọc từ cache
+
+    if (appData.isReady) {
+      // Data đã có → dùng luôn
+      state = state.copyWith(
+        salonId:   appData.salon?.id ?? 1,
+        staffList: appData.staffList,  // ← gán vào đây
+      );
+    } else {
+      // Data chưa load xong → lắng nghe khi có
+      _ref.listen(appDataProvider, (_, next) {
+        if (next.isReady) {
+          state = state.copyWith(
+            salonId:   next.salon?.id ?? 1,
+            staffList: next.staffList,  // ← gán khi có data
+          );
+        }
+      });
+    }
   }
 
-  // ── Load staffs + services khi mở màn hình ──────────
-  Future<void> loadInitialData() async {
-    state = state.copyWith(isLoadingStaffs: true, isLoadingServices: true);
-    try {
-      final results = await Future.wait([
-        _repo.getStaffs(),
-        _repo.getServices(),
-      ]);
-      state = state.copyWith(
-        staffList:         results[0] as List<Staff>,
-        serviceList:       results[1] as List<NailService>,
-        isLoadingStaffs:   false,
-        isLoadingServices: false,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoadingStaffs:   false,
-        isLoadingServices: false,
-        error:             'Không tải được dữ liệu: $e',
-      );
-    }
+  // Reset sau khi thanh toán — giữ salonId
+  void resetOrder() {
+    state = PosState(
+      salonId:     state.salonId,    // ← giữ salonId
+      staffList:   state.staffList,
+      serviceList: state.serviceList,
+    );
   }
 
   // ── Chọn thợ ────────────────────────────────────────
@@ -135,8 +155,8 @@ class PosNotifier extends StateNotifier<PosState> {
   }
 
   // ── Chọn / bỏ chọn dịch vụ ──────────────────────────
-  void toggleService(NailService service) {
-    final current = List<NailService>.from(state.selectedServices);
+  void toggleService(Service service) {
+    final current = List<Service>.from(state.selectedServices);
     final index = current.indexWhere((s) => s.id == service.id);
     if (index >= 0) {
       current.removeAt(index); // Bỏ chọn
@@ -195,14 +215,6 @@ class PosNotifier extends StateNotifier<PosState> {
     }
   }
 
-  // ── Reset sau khi thanh toán xong ───────────────────
-  void resetOrder() {
-    state = PosState(
-      staffList:   state.staffList,   // Giữ lại data đã load
-      serviceList: state.serviceList,
-    );
-  }
-
   void clearError() => state = state.copyWith(clearError: true);
 }
 
@@ -217,11 +229,11 @@ final posRepositoryProvider = Provider<PosRepository>((ref) {
 
 final posProvider = StateNotifierProvider<PosNotifier, PosState>((ref) {
   final repo = ref.watch(posRepositoryProvider);
-  return PosNotifier(repo);
+  return PosNotifier(repo,ref);
 });
 
 // Convenience providers
-final selectedServicesProvider = Provider<List<NailService>>((ref) {
+final selectedServicesProvider = Provider<List<Service>>((ref) {
   return ref.watch(posProvider).selectedServices;
 });
 
