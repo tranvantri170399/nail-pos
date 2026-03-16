@@ -109,6 +109,7 @@ class PosNotifier extends StateNotifier<PosState> {
   void _initSalonId() {
     final user = _ref.read(currentUserProvider);
     if (user != null) {
+      print("salon id: "+ user.salonId.toString());
       state = state.copyWith(salonId: user.salonId ?? 1);
     }
   }

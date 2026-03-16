@@ -23,7 +23,6 @@ class PosScreen extends ConsumerStatefulWidget {
 
 class _PosScreenState extends ConsumerState<PosScreen> {
   final _phoneCtrl = TextEditingController();
-  final int salonId = 1;
 
   @override
   void dispose() {
@@ -80,7 +79,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   border: Border.all(color: const Color(0xFFFF6B9D40)),
                 ),
                 child: Text(
-                  user.name,
+                  user.salonName??"N/A",
                   style: const TextStyle(color: Color(0xFFFF6B9D), fontSize: 12),
                 ),
               ),
@@ -117,7 +116,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 // ② Services Panel
                 Expanded(
                   child: ServicesPanel(
-                    salonId: salonId,
+                    salonId: pos.salonId,
                     selectedIds: pos.selectedServices.map((s) => s.id).toList(),
                       onServiceToggled: (service) {
                         ref.read(posProvider.notifier).toggleService(service);

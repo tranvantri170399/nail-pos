@@ -23,7 +23,7 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id:        json['id'] as int,
-      salonId:   json['salon_id'] as int?,   // ← thêm
+      salonId:   json['salonId'] as int?,   // ← thêm
       name:      json['name'] as String,
       role:      json['role'] as String,
       type:      json['type'] as String,
@@ -35,7 +35,7 @@ class UserModel {
 
   Map<String, dynamic> toJson() => {
     'id':        id,
-    'salon_id':  salonId,   // ← thêm
+    'salonId':  salonId,   // ← thêm
     'name':      name,
     'role':      role,
     'type':      type,
