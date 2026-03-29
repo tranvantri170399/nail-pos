@@ -5,6 +5,9 @@ import '../../../core/api/api_endpoints.dart';
 import '../../../core/models/staff.dart';
 import '../../../core/models/service.dart';
 import '../../../core/models/customer.dart';
+import '../../../core/models/appointment.dart';
+import '../../../core/models/transaction.dart';
+import '../../../core/models/transaction_item.dart';
 
 class PosRepository {
   final Dio _dio;
@@ -15,17 +18,15 @@ class PosRepository {
   Future<List<Staff>> getStaffs(int salonId) async {
     final response = await _dio.get(
       ApiEndpoints.staffs,
-      queryParameters: {'salonId': salonId},  // ← thêm dòng này
+      queryParameters: {'salonId': salonId}, // ← thêm dòng này
     );
-    return (response.data as List)
-        .map((json) => Staff.fromJson(json))
-        .toList();
+    return (response.data as List).map((json) => Staff.fromJson(json)).toList();
   }
 
   // ── Lấy danh sách dịch vụ ───────────────────────────
   Future<List<Service>> getServices(int salonId) async {
     final response = await _dio.get(
-        ApiEndpoints.services,
+      ApiEndpoints.services,
       queryParameters: {'salonId': salonId},
     );
     return (response.data as List)
@@ -40,29 +41,41 @@ class PosRepository {
   }
 
   // ── Tạo appointment + thanh toán ────────────────────
-  Future<int> createAppointment({
-    required int staffId,
-    int? customerId,
-    required List<int> serviceIds,
-    required double totalPrice,
-    required int totalMinutes,
-    String? note,
-  }) async {
-    final now = DateTime.now();
+  Future<int> createAppointment(Appointment appointment) async {
     final response = await _dio.post(
       ApiEndpoints.appointments,
-      data: {
-        'staff_id':       staffId,
-        'customer_id':    customerId,
-        'service_ids':    serviceIds,
-        'scheduled_date': now.toIso8601String().split('T')[0],
-        'start_time':     '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-        'total_minutes':  totalMinutes,
-        'total_price':    totalPrice,
-        'status':         'done', // Thanh toán ngay → done
-        'note':           note,
-      },
+      data: appointment.toJson(),
     );
     return response.data['id'] as int;
+  }
+
+  // ── Tạo transaction sau khi appointment thành công ───────
+  Future<Transaction> createTransaction(
+    Transaction transaction, {
+    List<Map<String, dynamic>>? itemsData,
+  }) async {
+    final data = itemsData != null
+        ? transaction.toJsonWithItems(itemsData)
+        : transaction.toJson();
+
+    // Debug: Print data being sent
+    print('Transaction data being sent: $data');
+
+    final response = await _dio.post(ApiEndpoints.transactions, data: data);
+    return Transaction.fromJson(
+      response.data,
+    ); // ← trả về Transaction thay vì id
+  }
+
+  // ── Tạo transaction items cho mỗi dịch vụ ─────────────────
+  Future<void> createTransactionItem(TransactionItem item) async {
+    await _dio.post(ApiEndpoints.transactionItems, data: item.toJson());
+  }
+
+  // ── Tạo nhiều transaction items cùng lúc ───────────────────
+  Future<void> createTransactionItems(List<TransactionItem> items) async {
+    for (final item in items) {
+      await createTransactionItem(item);
+    }
   }
 }

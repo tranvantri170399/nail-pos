@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final currentTheme = ref.watch(currentThemeProvider);
 
     // Lắng nghe state thay đổi
     ref.listen<AuthState>(authProvider, (prev, next) {
@@ -34,7 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D12),
+      backgroundColor: currentTheme.backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -44,11 +46,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               // ── Logo ─────────────────────────────────────
               Container(
-                width: 80, height: 80,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B9D), Color(0xFFc44dff)],
+                  gradient: LinearGradient(
+                    colors: [
+                      currentTheme.primaryColor,
+                      const Color(0xFFc44dff),
+                    ],
                   ),
                 ),
                 child: const Center(
@@ -56,18 +62,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'TPOS',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: currentTheme == AppTheme.dark
+                      ? Colors.white
+                      : Colors.black,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 4,
                 ),
               ),
-              const Text(
+              Text(
                 'Nail Salon Management',
-                style: TextStyle(color: Color(0xFF555566), fontSize: 13),
+                style: TextStyle(
+                  color: currentTheme == AppTheme.dark
+                      ? const Color(0xFF555566)
+                      : const Color(0xFF666677),
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 60),
 
@@ -118,7 +131,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Expanded(
                         child: Text(
                           authState.message,
-                          style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
+                          style: const TextStyle(
+                            color: Color(0xFFEF4444),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -139,33 +155,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final currentTheme = ref.watch(currentThemeProvider);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFF151520),
+          color: currentTheme == AppTheme.dark
+              ? const Color(0xFF151520)
+              : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Row(
           children: [
             Container(
-              width: 50, height: 50,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(child: Text(icon, style: const TextStyle(fontSize: 24))),
+              child: Center(
+                child: Text(icon, style: const TextStyle(fontSize: 24)),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 15)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: Color(0xFF555566), fontSize: 12)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: currentTheme == AppTheme.dark
+                          ? const Color(0xFF555566)
+                          : const Color(0xFF666677),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -189,9 +227,9 @@ class OwnerLoginForm extends ConsumerStatefulWidget {
 }
 
 class _OwnerLoginFormState extends ConsumerState<OwnerLoginForm> {
-  final _phoneCtrl    = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _obscure       = true;
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -202,15 +240,18 @@ class _OwnerLoginFormState extends ConsumerState<OwnerLoginForm> {
 
   void _login() {
     if (_phoneCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) return;
-    ref.read(authProvider.notifier).loginOwner(
-      phone:    _phoneCtrl.text.trim(),
-      password: _passwordCtrl.text.trim(),
-    );
+    ref
+        .read(authProvider.notifier)
+        .loginOwner(
+          phone: _phoneCtrl.text.trim(),
+          password: _passwordCtrl.text.trim(),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider) is AuthLoginLoading;
+    final currentTheme = ref.watch(currentThemeProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,38 +265,64 @@ class _OwnerLoginFormState extends ConsumerState<OwnerLoginForm> {
           child: const Row(
             children: [
               Icon(Icons.arrow_back_ios, color: Color(0xFF555566), size: 16),
-              Text('Quay lại', style: TextStyle(color: Color(0xFF555566), fontSize: 13)),
+              Text(
+                'Quay lại',
+                style: TextStyle(color: Color(0xFF555566), fontSize: 13),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 24),
 
-        const Text('👑 Chủ tiệm', style: TextStyle(color: Color(0xFFFFBF00), fontSize: 20, fontWeight: FontWeight.w700)),
+        Text(
+          '👑 Chủ tiệm',
+          style: TextStyle(
+            color: const Color(0xFFFFBF00),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 4),
-        const Text('Đăng nhập để quản lý salon', style: TextStyle(color: Color(0xFF555566), fontSize: 13)),
+        Text(
+          'Đăng nhập để quản lý salon',
+          style: TextStyle(
+            color: currentTheme == AppTheme.dark
+                ? const Color(0xFF555566)
+                : const Color(0xFF666677),
+            fontSize: 13,
+          ),
+        ),
         const SizedBox(height: 28),
 
         // Phone field
-        _buildLabel('Số điện thoại'),
+        _buildLabel('Số điện thoại', currentTheme),
         const SizedBox(height: 6),
         _buildInput(
           controller: _phoneCtrl,
           hint: '0967890123',
           keyboardType: TextInputType.phone,
+          currentTheme: currentTheme,
         ),
         const SizedBox(height: 16),
 
         // Password field
-        _buildLabel('Mật khẩu'),
+        _buildLabel('Mật khẩu', currentTheme),
         const SizedBox(height: 6),
         _buildInput(
           controller: _passwordCtrl,
           hint: '••••••••',
           obscure: _obscure,
           suffix: IconButton(
-            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF555566), size: 18),
+            icon: Icon(
+              _obscure ? Icons.visibility_off : Icons.visibility,
+              color: currentTheme == AppTheme.dark
+                  ? const Color(0xFF555566)
+                  : const Color(0xFF666677),
+              size: 18,
+            ),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
+          currentTheme: currentTheme,
         ),
         const SizedBox(height: 28),
 
@@ -268,11 +335,23 @@ class _OwnerLoginFormState extends ConsumerState<OwnerLoginForm> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFBF00),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                : const Text('Đăng nhập', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    ),
+                  )
+                : const Text(
+                    'Đăng nhập',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
           ),
         ),
       ],
@@ -293,7 +372,7 @@ class StaffLoginForm extends ConsumerStatefulWidget {
 
 class _StaffLoginFormState extends ConsumerState<StaffLoginForm> {
   final _phoneCtrl = TextEditingController();
-  final _pinCtrl   = TextEditingController();
+  final _pinCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -304,15 +383,15 @@ class _StaffLoginFormState extends ConsumerState<StaffLoginForm> {
 
   void _login() {
     if (_phoneCtrl.text.isEmpty || _pinCtrl.text.isEmpty) return;
-    ref.read(authProvider.notifier).loginStaff(
-      phone: _phoneCtrl.text.trim(),
-      pin:   _pinCtrl.text.trim(),
-    );
+    ref
+        .read(authProvider.notifier)
+        .loginStaff(phone: _phoneCtrl.text.trim(), pin: _pinCtrl.text.trim());
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider) is AuthLoginLoading;
+    final currentTheme = ref.watch(currentThemeProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,29 +405,48 @@ class _StaffLoginFormState extends ConsumerState<StaffLoginForm> {
           child: const Row(
             children: [
               Icon(Icons.arrow_back_ios, color: Color(0xFF555566), size: 16),
-              Text('Quay lại', style: TextStyle(color: Color(0xFF555566), fontSize: 13)),
+              Text(
+                'Quay lại',
+                style: TextStyle(color: Color(0xFF555566), fontSize: 13),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 24),
 
-        const Text('💅 Nhân viên', style: TextStyle(color: Color(0xFFFF6B9D), fontSize: 20, fontWeight: FontWeight.w700)),
+        Text(
+          '💅 Nhân viên',
+          style: TextStyle(
+            color: const Color(0xFFFF6B9D),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 4),
-        const Text('Nhập SĐT và mã PIN của bạn', style: TextStyle(color: Color(0xFF555566), fontSize: 13)),
+        Text(
+          'Nhập SĐT và mã PIN của bạn',
+          style: TextStyle(
+            color: currentTheme == AppTheme.dark
+                ? const Color(0xFF555566)
+                : const Color(0xFF666677),
+            fontSize: 13,
+          ),
+        ),
         const SizedBox(height: 28),
 
         // Phone field
-        _buildLabel('Số điện thoại'),
+        _buildLabel('Số điện thoại', currentTheme),
         const SizedBox(height: 6),
         _buildInput(
           controller: _phoneCtrl,
           hint: '0901111111',
           keyboardType: TextInputType.phone,
+          currentTheme: currentTheme,
         ),
         const SizedBox(height: 16),
 
         // PIN field
-        _buildLabel('Mã PIN (4 số)'),
+        _buildLabel('Mã PIN (4 số)', currentTheme),
         const SizedBox(height: 6),
         _buildInput(
           controller: _pinCtrl,
@@ -356,6 +454,7 @@ class _StaffLoginFormState extends ConsumerState<StaffLoginForm> {
           obscure: true,
           keyboardType: TextInputType.number,
           maxLength: 4,
+          currentTheme: currentTheme,
         ),
         const SizedBox(height: 28),
 
@@ -368,11 +467,23 @@ class _StaffLoginFormState extends ConsumerState<StaffLoginForm> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B9D),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Đăng nhập', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Đăng nhập',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
           ),
         ),
       ],
@@ -383,11 +494,11 @@ class _StaffLoginFormState extends ConsumerState<StaffLoginForm> {
 // ════════════════════════════════════════════════════
 // SHARED WIDGETS
 // ════════════════════════════════════════════════════
-Widget _buildLabel(String text) {
+Widget _buildLabel(String text, AppTheme currentTheme) {
   return Text(
     text,
-    style: const TextStyle(
-      color: Color(0xFF555566),
+    style: TextStyle(
+      color: currentTheme == AppTheme.dark ? const Color(0xFF555566) : const Color(0xFF666677),
       fontSize: 11,
       letterSpacing: 0.8,
     ),
@@ -401,27 +512,28 @@ Widget _buildInput({
   TextInputType? keyboardType,
   Widget? suffix,
   int? maxLength,
+  required AppTheme currentTheme,
 }) {
   return TextField(
     controller: controller,
     obscureText: obscure,
     keyboardType: keyboardType,
     maxLength: maxLength,
-    style: const TextStyle(color: Colors.white, fontSize: 14),
+    style: TextStyle(color: currentTheme == AppTheme.dark ? Colors.white : Colors.black, fontSize: 14),
     decoration: InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF333344)),
+      hintStyle: TextStyle(color: currentTheme == AppTheme.dark ? const Color(0xFF333344) : const Color(0xFF666677)),
       counterText: '',
       filled: true,
-      fillColor: const Color(0xFF151520),
+      fillColor: currentTheme == AppTheme.dark ? const Color(0xFF151520) : const Color(0xFFF5F5F5),
       suffixIcon: suffix,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF252535)),
+        borderSide: BorderSide(color: currentTheme == AppTheme.dark ? const Color(0xFF252535) : const Color(0xFFE0E0E0)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF252535)),
+        borderSide: BorderSide(color: currentTheme == AppTheme.dark ? const Color(0xFF252535) : const Color(0xFFE0E0E0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

@@ -3,13 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
+import 'core/providers/theme_provider.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: NailPOSApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: NailPOSApp()));
 }
 
 class NailPOSApp extends ConsumerWidget {
@@ -18,6 +15,7 @@ class NailPOSApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final currentTheme = ref.watch(currentThemeProvider);
 
     return MaterialApp.router(
       title: 'TPOS - Nail Salon',
@@ -25,10 +23,12 @@ class NailPOSApp extends ConsumerWidget {
       routerConfig: router,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF6B9D),
-          brightness: Brightness.dark,
+          seedColor: currentTheme.primaryColor,
+          brightness: currentTheme == AppTheme.dark
+              ? Brightness.dark
+              : Brightness.light,
         ),
-        scaffoldBackgroundColor: const Color(0xFF0D0D12),
+        scaffoldBackgroundColor: currentTheme.backgroundColor,
       ),
     );
   }

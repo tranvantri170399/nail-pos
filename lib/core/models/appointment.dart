@@ -27,17 +27,43 @@ class Appointment {
     this.staff,
   });
 
+  // Constructor cho tạo appointment mới (chưa có id)
+  Appointment.create({
+    required this.staffId,
+    this.customerId,
+    required this.scheduledDate,
+    required this.startTime,
+    required this.endTime,
+    required this.totalMinutes,
+    required this.totalPrice,
+    required this.status,
+    this.note,
+    this.staff,
+  }) : id = 0;
+
   factory Appointment.fromJson(Map<String, dynamic> json) => Appointment(
-    id:            json['id'],
-    staffId:       json['staff_id'],
-    customerId:    json['customer_id'],
+    id: json['id'],
+    staffId: json['staff_id'],
+    customerId: json['customer_id'],
     scheduledDate: json['scheduled_date'],
-    startTime:     json['start_time'],
-    endTime:       json['end_time'],
-    totalMinutes:  json['total_minutes'],
-    totalPrice:    double.parse(json['total_price'].toString()),
-    status:        json['status'] ?? 'confirmed',
-    note:          json['note'],
-    staff:         json['staff'] != null ? Staff.fromJson(json['staff']) : null,
+    startTime: json['start_time'],
+    endTime: json['end_time'],
+    totalMinutes: json['total_minutes'],
+    totalPrice: double.parse(json['total_price'].toString()),
+    status: json['status'] ?? 'confirmed',
+    note: json['note'],
+    staff: json['staff'] != null ? Staff.fromJson(json['staff']) : null,
   );
+
+  Map<String, dynamic> toJson() => {
+    'staff_id': staffId,
+    'customer_id': customerId,
+    'scheduled_date': scheduledDate,
+    'start_time': startTime,
+    'end_time': endTime,
+    'total_minutes': totalMinutes,
+    'total_price': totalPrice,
+    'status': status,
+    'note': note,
+  };
 }

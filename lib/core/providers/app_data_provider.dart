@@ -25,6 +25,8 @@ class AppDataState {
   });
 
   bool get isReady => salon != null && !isLoading;
+  bool get hasStaff => staffList.isNotEmpty;
+  bool get hasCategories => categories.isNotEmpty;
 
   AppDataState copyWith({
     Salon? salon,
@@ -48,6 +50,7 @@ class AppDataState {
 // ════════════════════════════════════════════════════
 class AppDataNotifier extends StateNotifier<AppDataState> {
   final Dio _dio;
+  bool _isCategoriesLoading = false;
 
   AppDataNotifier(this._dio) : super(const AppDataState());
 
@@ -75,6 +78,25 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
     }
   }
 
+  // Load riêng categories cho services
+  Future<void> loadCategoriesOnly(int salonId) async {
+    if (state.hasCategories || _isCategoriesLoading) return; // Đã có rồi hoặc đang load
+    
+    _isCategoriesLoading = true;
+    try {
+      final categories = await _loadCategories(salonId);
+      // Chỉ update nếu loadAll chưa hoàn thành
+      if (!state.isLoading) {
+        state = state.copyWith(categories: categories);
+      }
+    } catch (e) {
+      // Không update error, chỉ log
+      print('Failed to load categories: $e');
+    } finally {
+      _isCategoriesLoading = false;
+    }
+  }
+
   Future<Salon> _loadSalon(int salonId) async {
     final res = await _dio.get('/salons/$salonId');
     print("***_loadSalon***" + res.toString());
@@ -93,7 +115,10 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
     return (res.data as List).map((e) => ServiceCategory.fromJson(e)).toList();
   }
 
-  void clear() => state = const AppDataState();
+  void clear() {
+    state = const AppDataState();
+    _isCategoriesLoading = false;
+  }
 }
 
 final appDataProvider = StateNotifierProvider<AppDataNotifier, AppDataState>((ref) {

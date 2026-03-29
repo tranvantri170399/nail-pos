@@ -34,19 +34,19 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
         _buildSearchBar(),
         categoriesAsync.when(
           loading: () => const Expanded(
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: CircularProgressIndicator(color: Color(0xFFFF6B9D))),
           ),
           error: (err, _) => Expanded(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 40, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 40, color: Color(0xFFFF6B9D)),
                   const SizedBox(height: 8),
-                  Text('Lỗi: $err', style: const TextStyle(color: Colors.red)),
+                  Text('Lỗi: $err', style: const TextStyle(color: Color(0xFFFF6B9D))),
                   TextButton(
                     onPressed: () => ref.refresh(categoriesWithServicesProvider(widget.salonId)),
-                    child: const Text('Thử lại'),
+                    child: const Text('Thử lại', style: TextStyle(color: Color(0xFFFF6B9D))),
                   ),
                 ],
               ),

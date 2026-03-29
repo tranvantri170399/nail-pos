@@ -6,15 +6,17 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/pos/screens/pos_screen.dart';
+import '../../features/pos/screens/bill_screen.dart';
 
 // ════════════════════════════════════════════════════
 // ROUTES
 // ════════════════════════════════════════════════════
 class AppRoutes {
-  static const login       = '/login';
-  static const home        = '/home';        // Staff: appointment screen
-  static const dashboard   = '/dashboard';   // Owner: dashboard screen
+  static const login = '/login';
+  static const home = '/home'; // Staff: appointment screen
+  static const dashboard = '/dashboard'; // Owner: dashboard screen
   static const appointment = '/appointment';
+  static const bill = '/bill'; // Bill screen
 }
 
 // ════════════════════════════════════════════════════
@@ -41,9 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (authState is AuthLoginLoading) return null;
       if (authState is AuthAuthenticated) {
         if (isLoginPage) {
-          return authState.user.isOwner
-              ? AppRoutes.home
-              : AppRoutes.dashboard;
+          return authState.user.isOwner ? AppRoutes.home : AppRoutes.dashboard;
         }
       }
       return null;
@@ -60,6 +60,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.dashboard,
         builder: (context, state) => const OwnerDashboardPlaceholder(),
+      ),
+      GoRoute(
+        path: AppRoutes.bill,
+        builder: (context, state) => const BillScreen(),
       ),
     ],
   );
@@ -84,7 +88,11 @@ class OwnerDashboardPlaceholder extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               'Chào ${user?.name ?? "chủ tiệm"}!',
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             Text(
               user?.salonName ?? '',
@@ -93,7 +101,9 @@ class OwnerDashboardPlaceholder extends ConsumerWidget {
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () => ref.read(authProvider.notifier).logout(),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+              ),
               child: const Text('Đăng xuất'),
             ),
           ],

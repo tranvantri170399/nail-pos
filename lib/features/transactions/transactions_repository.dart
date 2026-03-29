@@ -55,14 +55,9 @@ class TransactionsRepository {
   Future<List<Transaction>> getBySalon(int salonId, {String? date}) async {
     final response = await _dio.get(
       ApiEndpoints.transactions,
-      queryParameters: {
-        'salonId': salonId,
-        if (date != null) 'date': date,
-      },
+      queryParameters: {'salonId': salonId, if (date != null) 'date': ?date},
     );
-    return (response.data as List)
-        .map((e) => Transaction.fromJson(e))
-        .toList();
+    return (response.data as List).map((e) => Transaction.fromJson(e)).toList();
   }
 
   Future<Map<String, dynamic>> getDailyReport(int salonId, String date) async {

@@ -3,22 +3,22 @@
 class ApiEndpoints {
   static const String baseUrl =
       'https://nail-pos-api-production.up.railway.app';
-
+  // static const String baseUrl = 'http://localhost:3000';
   // ── Auth ─────────────────────────────────────────────────
-  static const String ownerLogin      = '/auth/owner/login';
-  static const String staffLogin      = '/auth/staff/login';
+  static const String ownerLogin = '/auth/owner/login';
+  static const String staffLogin = '/auth/staff/login';
   static const String ownerSetPassword = '/auth/owner/set-password';
-  static const String staffSetPin     = '/auth/staff/set-pin';
+  static const String staffSetPin = '/auth/staff/set-pin';
 
   // ── Staffs ───────────────────────────────────────────────
-  static const String staffs          = '/staffs';
+  static const String staffs = '/staffs';
 
   // ── Customers ────────────────────────────────────────────
-  static const String customers       = '/customers';
+  static const String customers = '/customers';
   static const String customerByPhone = '/customers/phone';
 
   // ── Appointments ─────────────────────────────────────────
-  static const String appointments     = '/appointments';
+  static const String appointments = '/appointments';
   static const String appointmentByDate = '/appointments/by-date';
 
   // Salons
@@ -36,7 +36,9 @@ class ApiEndpoints {
 
   // Transactions
   static const String transactions = '/transactions';
+  static const String transactionItems = '/transaction-items';
   static const String transactionReport = '/transactions/report';
-  static String transactionByAppointment(int id) => '/transactions/appointment/$id';
+  static String transactionByAppointment(int id) =>
+      '/transactions/appointment/$id';
   static String transactionRefund(int id) => '/transactions/$id/refund';
 }

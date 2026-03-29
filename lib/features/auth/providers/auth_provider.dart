@@ -1,5 +1,6 @@
 // lib/features/auth/providers/auth_provider.dart
 
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/models/user_model.dart';
@@ -9,11 +10,21 @@ import '../repositories/auth_repository.dart';
 // ════════════════════════════════════════════════════
 // 1. AUTH STATE
 // ════════════════════════════════════════════════════
-abstract class AuthState { const AuthState(); }
+abstract class AuthState {
+  const AuthState();
+}
 
-class AuthLoading        extends AuthState { const AuthLoading(); }
-class AuthLoginLoading   extends AuthState { const AuthLoginLoading(); }
-class AuthUnauthenticated extends AuthState { const AuthUnauthenticated(); }
+class AuthLoading extends AuthState {
+  const AuthLoading();
+}
+
+class AuthLoginLoading extends AuthState {
+  const AuthLoginLoading();
+}
+
+class AuthUnauthenticated extends AuthState {
+  const AuthUnauthenticated();
+}
 
 class AuthAuthenticated extends AuthState {
   final UserModel user;
@@ -43,8 +54,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (isLoggedIn) {
         final user = await _authRepository.getCurrentUser();
         if (user != null) {
-          state = AuthAuthenticated(user);
+          // Chỉ load một lần để tránh duplicate
           await _ref.read(appDataProvider.notifier).loadAll(user.salonId ?? 1);
+          state = AuthAuthenticated(user);
           return;
         }
       }
@@ -63,22 +75,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final authResponse = await _authRepository.loginOwner(phone, password);
       state = AuthAuthenticated(authResponse.user);
-      await _ref.read(appDataProvider.notifier).loadAll(authResponse.user.salonId ?? 1);
+      // Chỉ load một lần để tránh duplicate
+      await _ref
+          .read(appDataProvider.notifier)
+          .loadAll(authResponse.user.salonId ?? 1);
     } catch (e) {
       state = AuthError(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   // Login staff
-  Future<void> loginStaff({
-    required String phone,
-    required String pin,
-  }) async {
+  Future<void> loginStaff({required String phone, required String pin}) async {
     state = const AuthLoginLoading();
     try {
       final authResponse = await _authRepository.loginStaff(phone, pin);
       state = AuthAuthenticated(authResponse.user);
-      await _ref.read(appDataProvider.notifier).loadAll(authResponse.user.salonId ?? 1);
+      // Chỉ load một lần để tránh duplicate
+      await _ref
+          .read(appDataProvider.notifier)
+          .loadAll(authResponse.user.salonId ?? 1);
     } catch (e) {
       state = AuthError(e.toString().replaceAll('Exception: ', ''));
     }

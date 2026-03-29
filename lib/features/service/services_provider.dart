@@ -10,8 +10,21 @@ final servicesRepositoryProvider = Provider<ServicesRepository>((ref) {
 });
 
 // Provider lấy categories + services theo salonId
-final categoriesWithServicesProvider = FutureProvider.family<List<ServiceCategory>, int>(
-      (ref, salonId) async {
-    return ref.watch(categoriesProvider);
-  },
-);
+final categoriesWithServicesProvider =
+    Provider.family<AsyncValue<List<ServiceCategory>>, int>((ref, salonId) {
+      final appData = ref.watch(appDataProvider);
+
+      if (appData.hasCategories) {
+        return AsyncValue.data(appData.categories);
+      } else if (appData.isLoading) {
+        return const AsyncValue.loading();
+      } else if (appData.error != null) {
+        return AsyncValue.error(appData.error!, StackTrace.current);
+      } else {
+        // Trigger load categories riêng nếu chưa có
+        Future.microtask(
+          () => ref.read(appDataProvider.notifier).loadCategoriesOnly(salonId),
+        );
+        return const AsyncValue.loading();
+      }
+    });

@@ -3,14 +3,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nail_pos/features/pos/screens/services_panel.dart';
 import '../../../core/models/service_category.dart';
 import '../../service/services_provider.dart';
 import '../providers/pos_provider.dart';
+import '../widgets/app_drawer.dart';
 import '../../../core/models/staff.dart';
 import '../../../core/models/service.dart';
 import '../../../core/models/customer.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/router/app_router.dart';
 
 final _vnd = NumberFormat('#,###', 'vi_VN');
 
@@ -34,8 +37,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   Widget build(BuildContext context) {
     final pos = ref.watch(posProvider);
     final user = ref.watch(currentUserProvider);
+    final isStaffCollapsed = ref.watch(staffCollapseProvider);
 
-    // Lắng nghe thanh toán thành công
+    // Lắng nghe thanh toán thành công và chọn thợ
     ref.listen<PosState>(posProvider, (_, next) {
       if (next.checkoutSuccess != null) {
         _showSuccessDialog(next.checkoutSuccess!);
@@ -49,13 +53,25 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         );
         ref.read(posProvider.notifier).clearError();
       }
+      // Auto collapse khi có thợ được chọn (chỉ ở màn hình dọc)
+      if (next.selectedStaff != null && !isStaffCollapsed) {
+        ref.read(staffCollapseProvider.notifier).state = true;
+      }
     });
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D12),
+      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: const Color(0xFF151520),
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            // ← hamburger icon
+            icon: const Icon(Icons.menu, color: Color(0xFF888899)),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: Row(
           children: [
             const Text('💅', style: TextStyle(fontSize: 20)),
@@ -79,8 +95,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   border: Border.all(color: const Color(0xFFFF6B9D40)),
                 ),
                 child: Text(
-                  user.salonName??"N/A",
-                  style: const TextStyle(color: Color(0xFFFF6B9D), fontSize: 12),
+                  user.salonName ?? "N/A",
+                  style: const TextStyle(
+                    color: Color(0xFFFF6B9D),
+                    fontSize: 12,
+                  ),
                 ),
               ),
           ],
@@ -118,14 +137,18 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                   child: ServicesPanel(
                     salonId: pos.salonId,
                     selectedIds: pos.selectedServices.map((s) => s.id).toList(),
-                      onServiceToggled: (service) {
-                        ref.read(posProvider.notifier).toggleService(service);
-                      }
+                    onServiceToggled: (service) {
+                      ref.read(posProvider.notifier).toggleService(service);
+                    },
                   ),
                 ),
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.35,
-                  child: _OrderSummary(pos: pos,orientation: orientation,phoneCtrl: _phoneCtrl,),
+                  child: _OrderSummary(
+                    pos: pos,
+                    orientation: orientation,
+                    phoneCtrl: _phoneCtrl,
+                  ),
                 ),
               ],
             );
@@ -133,14 +156,54 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             // ── Dọc: 1 cột cuộn ────────────────────────
             return SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _StaffRow(pos: pos),
+                  // AnimatedContainer cho staff section
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    height: isStaffCollapsed && pos.selectedStaff != null
+                        ? 70
+                        : null,
+                    child: isStaffCollapsed && pos.selectedStaff != null
+                        ? _CollapsedStaffCard(
+                            staff: pos.selectedStaff!,
+                            onTap: () {
+                              ref.read(staffCollapseProvider.notifier).state =
+                                  false;
+                            },
+                          )
+                        : ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.25,
+                            ),
+                            child: _StaffRow(pos: pos),
+                          ),
+                  ),
                   Container(height: 1, color: const Color(0xFF252535)),
-                  _ServiceGrid(pos: pos, compact: true),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.35,
+                    ),
+                    child: ServicesPanel(
+                      salonId: pos.salonId,
+                      selectedIds: pos.selectedServices
+                          .map((s) => s.id)
+                          .toList(),
+                      onServiceToggled: (service) {
+                        ref.read(posProvider.notifier).toggleService(service);
+                      },
+                    ),
+                  ),
                   Container(height: 1, color: const Color(0xFF252535)),
                   _CustomerSearch(controller: _phoneCtrl, pos: pos),
                   Container(height: 1, color: const Color(0xFF252535)),
-                  _OrderSummary(pos: pos,orientation: orientation,phoneCtrl: _phoneCtrl),
+                  _OrderSummary(
+                    pos: pos,
+                    orientation: orientation,
+                    phoneCtrl: _phoneCtrl,
+                  ),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -165,7 +228,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             const SizedBox(height: 12),
             const Text(
               'Thanh toán thành công!',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -178,10 +245,23 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              context.push(AppRoutes.bill);
+            },
+            child: const Text(
+              'In bill',
+              style: TextStyle(color: Color(0xFFFF6B9D)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
               ref.read(posProvider.notifier).resetOrder();
               _phoneCtrl.clear();
             },
-            child: const Text('Đơn mới', style: TextStyle(color: Color(0xFFFF6B9D))),
+            child: const Text(
+              'Đơn mới',
+              style: TextStyle(color: Color(0xFFFF6B9D)),
+            ),
           ),
         ],
       ),
@@ -203,14 +283,19 @@ class _StaffColumn extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text('CHỌN THỢ', style: TextStyle(
-            color: const Color(0xFF555566),
-            fontSize: 11,
-            letterSpacing: 1.2,
-          )),
+          child: Text(
+            'CHỌN THỢ',
+            style: TextStyle(
+              color: const Color(0xFF555566),
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
         ),
-        if (pos.isLoadingStaffs)
-          const Center(child: CircularProgressIndicator(color: Color(0xFFFF6B9D)))
+        if (pos.isLoadingStaffs || pos.staffList.isEmpty)
+          const Center(
+            child: CircularProgressIndicator(color: Color(0xFFFF6B9D)),
+          )
         else
           Expanded(
             child: ListView.builder(
@@ -219,7 +304,9 @@ class _StaffColumn extends ConsumerWidget {
               itemBuilder: (_, i) => _StaffCard(
                 staff: pos.staffList[i],
                 isSelected: pos.selectedStaff?.id == pos.staffList[i].id,
-                onTap: () => ref.read(posProvider.notifier).selectStaff(pos.staffList[i]),
+                onTap: () => ref
+                    .read(posProvider.notifier)
+                    .selectStaff(pos.staffList[i]),
               ),
             ),
           ),
@@ -242,17 +329,22 @@ class _StaffRow extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text('CHỌN THỢ', style: TextStyle(
-            color: const Color(0xFF555566),
-            fontSize: 11,
-            letterSpacing: 1.2,
-          )),
+          child: Text(
+            'CHỌN THỢ',
+            style: TextStyle(
+              color: const Color(0xFF555566),
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
         ),
-        if (pos.isLoadingStaffs)
-          const Center(child: Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(color: Color(0xFFFF6B9D)),
-          ))
+        if (pos.isLoadingStaffs || pos.staffList.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(color: Color(0xFFFF6B9D)),
+            ),
+          )
         else
           SizedBox(
             height: 90,
@@ -265,7 +357,9 @@ class _StaffRow extends ConsumerWidget {
                 child: _StaffCard(
                   staff: pos.staffList[i],
                   isSelected: pos.selectedStaff?.id == pos.staffList[i].id,
-                  onTap: () => ref.read(posProvider.notifier).selectStaff(pos.staffList[i]),
+                  onTap: () => ref
+                      .read(posProvider.notifier)
+                      .selectStaff(pos.staffList[i]),
                   compact: true,
                 ),
               ),
@@ -303,7 +397,9 @@ class _StaffCard extends StatelessWidget {
           width: 70,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.2) : const Color(0xFF151520),
+            color: isSelected
+                ? color.withOpacity(0.2)
+                : const Color(0xFF151520),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? color : const Color(0xFF252535),
@@ -318,7 +414,11 @@ class _StaffCard extends StatelessWidget {
                 backgroundColor: color.withOpacity(0.3),
                 child: Text(
                   staff.name[0],
-                  style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14),
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
@@ -357,7 +457,11 @@ class _StaffCard extends StatelessWidget {
               backgroundColor: color.withOpacity(0.3),
               child: Text(
                 staff.name[0],
-                style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 16),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -368,20 +472,24 @@ class _StaffCard extends StatelessWidget {
                   Text(
                     staff.name,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF888899),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF888899),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
                   Text(
                     staff.role,
-                    style: const TextStyle(color: Color(0xFF555566), fontSize: 11),
+                    style: const TextStyle(
+                      color: Color(0xFF555566),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color, size: 18),
+            if (isSelected) Icon(Icons.check_circle, color: color, size: 18),
           ],
         ),
       ),
@@ -394,8 +502,7 @@ class _StaffCard extends StatelessWidget {
 // ════════════════════════════════════════════════════
 class _ServiceGrid extends ConsumerStatefulWidget {
   final PosState pos;
-  final bool compact;
-  const _ServiceGrid({required this.pos, this.compact = false});
+  const _ServiceGrid({required this.pos});
 
   @override
   ConsumerState<_ServiceGrid> createState() => _ServiceGridState();
@@ -417,11 +524,14 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
         // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text('CHỌN DỊCH VỤ', style: TextStyle(
-            color: const Color(0xFF555566),
-            fontSize: 11,
-            letterSpacing: 1.2,
-          )),
+          child: Text(
+            'CHỌN DỊCH VỤ',
+            style: TextStyle(
+              color: const Color(0xFF555566),
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
         ),
 
         // Search bar
@@ -439,12 +549,27 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, color: Color(0xFFFF6B9D), size: 32),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Color(0xFFFF6B9D),
+                    size: 32,
+                  ),
                   const SizedBox(height: 8),
-                  Text(err.toString(), style: const TextStyle(color: Color(0xFF555566), fontSize: 12)),
+                  Text(
+                    err.toString(),
+                    style: const TextStyle(
+                      color: Color(0xFF555566),
+                      fontSize: 12,
+                    ),
+                  ),
                   TextButton(
-                    onPressed: () => ref.refresh(categoriesWithServicesProvider(widget.pos.salonId)),
-                    child: const Text('Thử lại', style: TextStyle(color: Color(0xFFFF6B9D))),
+                    onPressed: () => ref.refresh(
+                      categoriesWithServicesProvider(widget.pos.salonId),
+                    ),
+                    child: const Text(
+                      'Thử lại',
+                      style: TextStyle(color: Color(0xFFFF6B9D)),
+                    ),
                   ),
                 ],
               ),
@@ -474,12 +599,20 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
         decoration: InputDecoration(
           hintText: 'Tìm dịch vụ...',
           hintStyle: const TextStyle(color: Color(0xFF555566), fontSize: 13),
-          prefixIcon: const Icon(Icons.search, size: 16, color: Color(0xFF555566)),
+          prefixIcon: const Icon(
+            Icons.search,
+            size: 16,
+            color: Color(0xFF555566),
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-            icon: const Icon(Icons.clear, size: 14, color: Color(0xFF555566)),
-            onPressed: () => setState(() => _searchQuery = ''),
-          )
+                  icon: const Icon(
+                    Icons.clear,
+                    size: 14,
+                    color: Color(0xFF555566),
+                  ),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                )
               : null,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
           filled: true,
@@ -555,7 +688,8 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
         child: Row(
           children: [
             Container(
-              width: 6, height: 6,
+              width: 6,
+              height: 6,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 5),
@@ -576,13 +710,18 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
   // ③ Service grid grouped theo category
   Widget _buildServiceGrid(List<ServiceCategory> categories) {
     final filtered = categories
-        .where((cat) => _selectedCategoryId == null || cat.id == _selectedCategoryId)
+        .where(
+          (cat) => _selectedCategoryId == null || cat.id == _selectedCategoryId,
+        )
         .map((cat) {
-      final services = cat.services
-          .where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
-      return MapEntry(cat, services);
-    })
+          final services = cat.services
+              .where(
+                (s) =>
+                    s.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+              )
+              .toList();
+          return MapEntry(cat, services);
+        })
         .where((e) => e.value.isNotEmpty)
         .toList();
 
@@ -612,8 +751,12 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
               child: Row(
                 children: [
                   Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(color: catColor, shape: BoxShape.circle),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: catColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -628,7 +771,10 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
                   const SizedBox(width: 6),
                   Text(
                     '${services.length}',
-                    style: const TextStyle(color: Color(0xFF555566), fontSize: 10),
+                    style: const TextStyle(
+                      color: Color(0xFF555566),
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -647,12 +793,14 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
               itemCount: services.length,
               itemBuilder: (_, i) {
                 final service = services[i];
-                final isSelected = widget.pos.selectedServices
-                    .any((s) => s.id == service.id);
+                final isSelected = widget.pos.selectedServices.any(
+                  (s) => s.id == service.id,
+                );
                 return _ServiceCard(
                   service: service,
                   isSelected: isSelected,
-                  onTap: () => ref.read(posProvider.notifier).toggleService(service),
+                  onTap: () =>
+                      ref.read(posProvider.notifier).toggleService(service),
                 );
               },
             ),
@@ -708,7 +856,9 @@ class _ServiceCard extends StatelessWidget {
                   Text(
                     service.name,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF888899),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF888899),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -724,8 +874,7 @@ class _ServiceCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color, size: 16),
+            if (isSelected) Icon(Icons.check_circle, color: color, size: 16),
           ],
         ),
       ),
@@ -758,11 +907,14 @@ class _CustomerSearch extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('KHÁCH HÀNG', style: TextStyle(
-            color: const Color(0xFF555566),
-            fontSize: 11,
-            letterSpacing: 1.2,
-          )),
+          Text(
+            'KHÁCH HÀNG',
+            style: TextStyle(
+              color: const Color(0xFF555566),
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
           const SizedBox(height: 8),
 
           // Nếu đã tìm thấy khách
@@ -787,7 +939,11 @@ class _CustomerSearch extends ConsumerWidget {
                       hintStyle: const TextStyle(color: Color(0xFF333344)),
                       filled: true,
                       fillColor: const Color(0xFF151520),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF555566), size: 18),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF555566),
+                        size: 18,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: Color(0xFF252535)),
@@ -800,12 +956,20 @@ class _CustomerSearch extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: Color(0xFFFF6B9D)),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       suffixIcon: pos.isSearchingCustomer
                           ? const Padding(
                               padding: EdgeInsets.all(12),
-                              child: SizedBox(width: 16, height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF6B9D)),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFFFF6B9D),
+                                ),
                               ),
                             )
                           : null,
@@ -821,10 +985,18 @@ class _CustomerSearch extends ConsumerWidget {
                       .searchCustomer(controller.text),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF252535),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  child: const Text('Tìm', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Tìm',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -863,11 +1035,18 @@ class _CustomerCard extends StatelessWidget {
               children: [
                 Text(
                   customer.name,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
                 Text(
                   customer.phone,
-                  style: const TextStyle(color: Color(0xFF555566), fontSize: 11),
+                  style: const TextStyle(
+                    color: Color(0xFF555566),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -883,47 +1062,244 @@ class _CustomerCard extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════
+// COLLAPSED STAFF CARD (Portrait mode)
+// ════════════════════════════════════════════════════
+class _CollapsedStaffCard extends StatelessWidget {
+  final Staff staff;
+  final VoidCallback onTap;
+
+  const _CollapsedStaffCard({required this.staff, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hexToColor(staff.color!);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: color.withOpacity(0.3),
+              child: Text(
+                staff.name[0],
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    staff.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    staff.role,
+                    style: const TextStyle(
+                      color: Color(0xFF555566),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.keyboard_arrow_up, color: color, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════
 // ORDER SUMMARY
 // ════════════════════════════════════════════════════
 class _OrderSummary extends ConsumerWidget {
   final PosState pos;
-  final  Orientation orientation;
+  final Orientation orientation;
   final TextEditingController phoneCtrl;
-  const _OrderSummary({required this.pos,required this.orientation, required this.phoneCtrl});
+  const _OrderSummary({
+    required this.pos,
+    required this.orientation,
+    required this.phoneCtrl,
+  });
+
+  // ── Dialog chọn phương thức thanh toán ─────────────────────
+  void _showPaymentMethodDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Chọn phương thức thanh toán'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.money),
+              title: const Text('Tiền mặt'),
+              onTap: () {
+                ref.read(posProvider.notifier).selectPaymentMethod('cash');
+                Navigator.of(context).pop();
+                ref.read(posProvider.notifier).checkout();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.credit_card),
+              title: const Text('Thẻ ngân hàng'),
+              onTap: () {
+                ref.read(posProvider.notifier).selectPaymentMethod('card');
+                Navigator.of(context).pop();
+                ref.read(posProvider.notifier).checkout();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner),
+              title: const Text('Chuyển khoản QR'),
+              onTap: () {
+                ref.read(posProvider.notifier).selectPaymentMethod('transfer');
+                Navigator.of(context).pop();
+                ref.read(posProvider.notifier).checkout();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Helper methods ───────────────────────────────────────
+  IconData _getPaymentIcon(String method) {
+    switch (method) {
+      case 'cash':
+        return Icons.money;
+      case 'card':
+        return Icons.credit_card;
+      case 'transfer':
+        return Icons.qr_code_scanner;
+      default:
+        return Icons.money;
+    }
+  }
+
+  String _getPaymentText(String method) {
+    switch (method) {
+      case 'cash':
+        return 'Tiền mặt';
+      case 'card':
+        return 'Thẻ ngân hàng';
+      case 'transfer':
+        return 'Chuyển khoản QR';
+      default:
+        return 'Tiền mặt';
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if(orientation == Orientation.landscape)...[
-            _CustomerSearch(
-              controller: phoneCtrl,
-              pos: pos,
-            ),
+          if (orientation == Orientation.landscape) ...[
+            _CustomerSearch(controller: phoneCtrl, pos: pos),
           ],
           // Danh sách dịch vụ đã chọn
-          Expanded(
-            child: Column(
+          if (orientation == Orientation.landscape)
+            Expanded(
+              child: Column(
+                children: [
+                  if (pos.selectedServices.isNotEmpty) ...[
+                    ...pos.selectedServices.map(
+                      (s) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4, top: 5),
+                        child: Row(
+                          children: [
+                            const Text(
+                              '•  ',
+                              style: TextStyle(color: Color(0xFF555566)),
+                            ),
+                            Expanded(
+                              child: Text(
+                                s.name,
+                                style: const TextStyle(
+                                  color: Color(0xFF888899),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${_vnd.format(s.price)}đ',
+                              style: const TextStyle(
+                                color: Color(0xFF888899),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Color(0xFF252535)),
+                  ],
+                ],
+              ),
+            )
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (pos.selectedServices.isNotEmpty) ...[
-                  ...pos.selectedServices.map((s) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4,top: 5),
-                    child: Row(
-                      children: [
-                        const Text('•  ', style: TextStyle(color: Color(0xFF555566))),
-                        Expanded(child: Text(s.name, style: const TextStyle(color: Color(0xFF888899), fontSize: 13))),
-                        Text('${_vnd.format(s.price)}đ', style: const TextStyle(color: Color(0xFF888899), fontSize: 13)),
-                      ],
+                  ...pos.selectedServices.map(
+                    (s) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4, top: 5),
+                      child: Row(
+                        children: [
+                          const Text(
+                            '•  ',
+                            style: TextStyle(color: Color(0xFF555566)),
+                          ),
+                          Expanded(
+                            child: Text(
+                              s.name,
+                              style: const TextStyle(
+                                color: Color(0xFF888899),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${_vnd.format(s.price)}đ',
+                            style: const TextStyle(
+                              color: Color(0xFF888899),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                   const Divider(color: Color(0xFF252535)),
                 ],
               ],
             ),
-          ),
 
           // Tổng
           Row(
@@ -932,7 +1308,10 @@ class _OrderSummary extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Tổng cộng', style: TextStyle(color: Color(0xFF555566), fontSize: 12)),
+                  const Text(
+                    'Tổng cộng',
+                    style: TextStyle(color: Color(0xFF555566), fontSize: 12),
+                  ),
                   Text(
                     '${_vnd.format(pos.totalPrice)}đ',
                     style: const TextStyle(
@@ -941,22 +1320,50 @@ class _OrderSummary extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        _getPaymentIcon(pos.paymentMethod),
+                        size: 16,
+                        color: const Color(0xFF555566),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _getPaymentText(pos.paymentMethod),
+                        style: const TextStyle(
+                          color: Color(0xFF555566),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
               if (pos.totalMinutes > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF252535),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.timer, color: Color(0xFF555566), size: 14),
+                      const Icon(
+                        Icons.timer,
+                        color: Color(0xFF555566),
+                        size: 14,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${pos.totalMinutes} phút',
-                        style: const TextStyle(color: Color(0xFF555566), fontSize: 12),
+                        style: const TextStyle(
+                          color: Color(0xFF555566),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -970,20 +1377,32 @@ class _OrderSummary extends ConsumerWidget {
             height: 52,
             child: ElevatedButton(
               onPressed: pos.canCheckout && !pos.isCheckingOut
-                  ? () => ref.read(posProvider.notifier).checkout()
+                  ? () => _showPaymentMethodDialog(context, ref)
                   : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
                 disabledBackgroundColor: const Color(0xFF252535),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: pos.isCheckingOut
-                  ? const SizedBox(width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : Text(
-                      pos.canCheckout ? '💳  Thanh toán' : 'Chọn thợ và dịch vụ',
+                      pos.canCheckout
+                          ? '💳  Thanh toán'
+                          : 'Chọn thợ và dịch vụ',
                       style: TextStyle(
-                        color: pos.canCheckout ? Colors.white : const Color(0xFF555566),
+                        color: pos.canCheckout
+                            ? Colors.white
+                            : const Color(0xFF555566),
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
