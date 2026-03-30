@@ -1,5 +1,6 @@
 import 'package:nail_pos/core/models/customer.dart';
 import 'package:nail_pos/core/models/staff.dart';
+import 'package:nail_pos/core/models/appointment_service.dart';
 
 class Appointment {
   final int id;
@@ -16,6 +17,7 @@ class Appointment {
   final DateTime createdAt;
   final Staff? staff;
   final Customer? customer;
+  final List<AppointmentService>? services;
 
   Appointment({
     required this.id,
@@ -32,6 +34,7 @@ class Appointment {
     required this.createdAt,
     this.staff,
     this.customer,
+    this.services,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
@@ -51,6 +54,11 @@ class Appointment {
       staff: json['staff'] != null ? Staff.fromJson(json['staff']) : null,
       customer: json['customer'] != null
           ? Customer.fromJson(json['customer'])
+          : null,
+      services: json['appointmentServices'] != null
+          ? (json['appointmentServices'] as List)
+                .map((s) => AppointmentService.fromJson(s))
+                .toList()
           : null,
     );
   }
@@ -109,9 +117,8 @@ class Appointment {
 
   // Getter for service summary (for display in timeline)
   String get serviceSummary {
-    // This would need to be populated from the appointment services
-    // For now, return a placeholder
-    return 'Dịch vụ';
+    if (services?.isEmpty ?? true) return 'Dịch vụ';
+    return services!.map((s) => s.serviceName).join(', ');
   }
 
   // Getter for customer name (for display in timeline)

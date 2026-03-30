@@ -6,6 +6,7 @@ import '../../../core/models/staff.dart';
 import '../../../core/models/service.dart';
 import '../../../core/models/customer.dart';
 import '../../../core/models/appointment.dart';
+import '../../../core/models/appointment_service.dart';
 import '../../../core/providers/app_data_provider.dart';
 import '../providers/appointment_provider.dart';
 import '../../customer/customer_provider.dart';
@@ -890,6 +891,7 @@ class _CreateAppointmentDialogState
   Future<void> _confirm() async {
     final notifier = ref.read(appointmentProvider.notifier);
 
+    // Create appointment object first (without services)
     final appointment = Appointment.create(
       staffId: _selectedStaff!.id,
       customerId: _foundCustomer?.id,
@@ -905,7 +907,22 @@ class _CreateAppointmentDialogState
       note: _noteCtrl.text.trim(),
     );
 
-    await notifier.createAppointment(appointment);
+    // Create appointment services from selected services
+    final appointmentServices = _selectedServices.map((service) {
+      return AppointmentService(
+        id: 0, // Will be set by database
+        appointmentId: 0, // Will be set by database
+        serviceId: service.id,
+        price: service.price,
+        durationMinutes: service.durationMinutes,
+        service: service,
+      );
+    }).toList();
+
+    await notifier.createAppointmentWithServices(
+      appointment,
+      appointmentServices,
+    );
     if (mounted) Navigator.pop(context);
   }
 

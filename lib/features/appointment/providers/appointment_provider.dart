@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/models/appointment.dart';
+import '../../../core/models/appointment_service.dart';
 import '../repositories/appointment_repository.dart';
 
 // Repository provider
@@ -73,6 +74,31 @@ class AppointmentNotifier extends StateNotifier<AppointmentOperationState> {
     }
   }
 
+  Future<void> createAppointmentWithServices(
+    Appointment appointment,
+    List<AppointmentService> services,
+  ) async {
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+
+    try {
+      await _repository.createAppointmentWithServices(
+        appointment: appointment,
+        services: services,
+      );
+
+      // Refresh appointments list
+      _ref.invalidate(appointmentsByDateProvider(appointment.scheduledDate));
+      _ref.invalidate(allAppointmentsProvider);
+
+      state = state.copyWith(isLoading: false, isSuccess: true);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Không thể tạo lịch hẹn: ${e.toString()}',
+      );
+    }
+  }
+
   Future<void> updateStatus(
     int appointmentId,
     String status,
@@ -109,8 +135,34 @@ class AppointmentNotifier extends StateNotifier<AppointmentOperationState> {
     }
   }
 
+  Future<List<AppointmentService>> getAppointmentServices(
+    int appointmentId,
+  ) async {
+    try {
+      return await _repository.getAppointmentServices(appointmentId);
+    } catch (e) {
+      state = state.copyWith(error: 'Không thể tải dịch vụ: ${e.toString()}');
+      return [];
+    }
+  }
+
+  Future<Appointment> getAppointmentById(int id) async {
+    try {
+      return await _repository.getById(id);
+    } catch (e) {
+      state = state.copyWith(error: 'Không thể tải lịch hẹn: ${e.toString()}');
+      rethrow;
+    }
+  }
+
   void reset() {
     state = const AppointmentOperationState();
+  }
+
+  void clearAllCache() {
+    // Clear all appointment providers
+    _ref.invalidate(allAppointmentsProvider);
+    // Note: appointmentsByDateProvider will be invalidated when used with specific date
   }
 }
 

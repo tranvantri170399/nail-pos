@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 enum NavItem {
   pos('POS', Icons.point_of_sale, '/home'),
-  dashboard('Dashboard', Icons.dashboard, '/dashboard'),
+  appointments('Lịch hẹn', Icons.calendar_today, '/appointments'),
   reports('Báo cáo', Icons.bar_chart, '/revenue-report'),
   staff('Nhân viên', Icons.people, '/staffs'),
   services('Dịch vụ', Icons.spa, '/services');
@@ -117,14 +117,14 @@ class PosBottomNavigationBar extends StatelessWidget {
   }
 }
 
-class DashboardBottomNavigationBar extends StatelessWidget {
-  const DashboardBottomNavigationBar({super.key});
+class AppointmentBottomNavigationBar extends StatelessWidget {
+  const AppointmentBottomNavigationBar({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const AppBottomNavigationBar(
-      activeItem: NavItem.dashboard,
-      activeColor: Color(0xFF10B981),
+      activeItem: NavItem.appointments,
+      activeColor: Color(0xFF3B82F6),
       inactiveColor: Color(0xFF888899),
       backgroundColor: Color(0xFF151520),
     );

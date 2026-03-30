@@ -7,6 +7,8 @@ import '../../../core/providers/app_data_provider.dart';
 import '../../../features/pos/widgets/app_drawer.dart';
 import '../providers/appointment_provider.dart';
 import '../widgets/create_appointment_dialog.dart';
+import '../widgets/appointment_detail_dialog.dart';
+import '../../../core/widgets/bottom_navigation_bar.dart';
 
 class AppointmentScreen extends ConsumerStatefulWidget {
   const AppointmentScreen({super.key});
@@ -30,15 +32,21 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D14),
-      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: const Color(0xFF151520),
         elevation: 0,
         leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: Color(0xFF888899)),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
+          builder: (ctx) {
+            // Show menu button on mobile, hide on desktop
+            if (MediaQuery.of(ctx).size.width <= 600) {
+              return IconButton(
+                icon: const Icon(Icons.menu, color: Color(0xFF888899)),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              );
+            }
+            // On desktop, show existing app drawer button or nothing
+            return const SizedBox.shrink();
+          },
         ),
         title: const Text(
           'Lịch hẹn',
@@ -47,43 +55,59 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B9D),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => _refreshAppointments(),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: Color(0xFF888899),
+                    size: 18,
+                  ),
+                  tooltip: 'Làm mới dữ liệu',
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B9D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _showCreateDialog(context),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Tạo lịch', style: TextStyle(fontSize: 12)),
                 ),
-                elevation: 0,
-              ),
-              onPressed: () => _showCreateDialog(context),
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Tạo lịch', style: TextStyle(fontSize: 12)),
+              ],
             ),
           ),
         ],
       ),
       body: Row(
         children: [
-          // ① Left — Calendar + Staff filter
-          SizedBox(
-            width: 220,
-            child: _LeftPanel(
-              selectedDate: _selectedDate,
-              selectedStaffId: _selectedStaffId,
-              staffList: staffList,
-              appointments: appointments.value ?? [],
-              onDateSelected: (date) => setState(() => _selectedDate = date),
-              onStaffSelected: (id) => setState(() => _selectedStaffId = id),
+          // ① Left — Calendar + Staff filter (Desktop only)
+          if (MediaQuery.of(context).size.width > 600)
+            SizedBox(
+              width: 220,
+              child: _LeftPanel(
+                selectedDate: _selectedDate,
+                selectedStaffId: _selectedStaffId,
+                staffList: staffList,
+                appointments: appointments.value ?? [],
+                onDateSelected: (date) => setState(() => _selectedDate = date),
+                onStaffSelected: (id) => setState(() => _selectedStaffId = id),
+              ),
             ),
-          ),
+
           const VerticalDivider(width: 1, color: Color(0xFF252535)),
 
-          // ② Right — Timeline
+          // ② Right — Timeline (All screen sizes)
           Expanded(
             child: Column(
               children: [
@@ -116,6 +140,26 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
           ),
         ],
       ),
+      drawer: MediaQuery.of(context).size.width <= 600
+          ? Drawer(
+              backgroundColor: const Color(0xFF151520),
+              child: _LeftPanel(
+                selectedDate: _selectedDate,
+                selectedStaffId: _selectedStaffId,
+                staffList: staffList,
+                appointments: appointments.value ?? [],
+                onDateSelected: (date) {
+                  setState(() => _selectedDate = date);
+                  Navigator.pop(context); // Close drawer after selection
+                },
+                onStaffSelected: (id) {
+                  setState(() => _selectedStaffId = id);
+                  Navigator.pop(context); // Close drawer after selection
+                },
+              ),
+            )
+          : const AppDrawer(),
+      bottomNavigationBar: const AppointmentBottomNavigationBar(),
     );
   }
 
@@ -124,6 +168,16 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
       context: context,
       builder: (_) => const CreateAppointmentDialog(),
     );
+  }
+
+  void _refreshAppointments() {
+    // Clear all appointment cache
+    ref.read(appointmentProvider.notifier).clearAllCache();
+
+    // Force refresh current date's appointments
+    final currentDate =
+        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    ref.invalidate(appointmentsByDateProvider(currentDate));
   }
 }
 
@@ -479,7 +533,7 @@ class _Timeline extends StatelessWidget {
                     ),
 
                   // Appointment cards
-                  ...appointments.map((appt) => _buildApptCard(appt)),
+                  ...appointments.map((appt) => _buildApptCard(context, appt)),
                 ],
               ),
             ),
@@ -489,9 +543,10 @@ class _Timeline extends StatelessWidget {
     );
   }
 
-  Widget _buildApptCard(dynamic appt) {
+  Widget _buildApptCard(BuildContext context, dynamic appt) {
     final startMinutes = appt.startHour * 60 + appt.startMinute - 8 * 60;
-    final height = (appt.totalMinutes ?? 60).toDouble() - 4;
+    final totalMinutes = appt.totalMinutes ?? 60;
+    final height = (totalMinutes < 60 ? 60 : totalMinutes).toDouble() - 4;
 
     final statusColor = switch (appt.status) {
       'completed' => const Color(0xFF1D9E75),
@@ -505,9 +560,7 @@ class _Timeline extends StatelessWidget {
       right: 4,
       height: height,
       child: GestureDetector(
-        onTap: () {
-          /* TODO: show detail */
-        },
+        onTap: () => _showAppointmentDetail(context, appt),
         child: Container(
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
           decoration: BoxDecoration(
@@ -536,6 +589,13 @@ class _Timeline extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showAppointmentDetail(BuildContext context, dynamic appt) {
+    showDialog(
+      context: context,
+      builder: (_) => AppointmentDetailDialog(appointment: appt),
     );
   }
 }

@@ -148,7 +148,8 @@ class OwnerDashboardPlaceholder extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D12),
-      bottomNavigationBar: const DashboardBottomNavigationBar(),
+      bottomNavigationBar:
+          const PosBottomNavigationBar(), // Use POS navigation as fallback
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
