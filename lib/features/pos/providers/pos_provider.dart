@@ -122,7 +122,7 @@ class PosNotifier extends StateNotifier<PosState> {
     _initSalonId(); // ← init salonId trước
     _initFromCache();
   }
-  // ✅ Đúng — dùng currentUserProvider
+
   void _initSalonId() {
     final user = _ref.read(currentUserProvider);
     if (user != null) {
@@ -132,32 +132,25 @@ class PosNotifier extends StateNotifier<PosState> {
   }
 
   // Load staffs + services khi mở màn hình
-  void _initFromCache() {
-    final appData = _ref.read(appDataProvider); // ← đọc từ cache
+  void _initFromCache() async {
+    final appData = _ref.read(appDataProvider);
 
+    // Copy data từ cache nếu có
     if (appData.hasStaff) {
-      // Staff đã có → dùng luôn
-      state = state.copyWith(
-        salonId: appData.salon?.id ?? 1,
-        staffList: appData.staffList,
-      );
+      state = state.copyWith(staffList: appData.staffList);
     }
-
-    // Luôn lắng nghe thay đổi
-    _ref.listen(appDataProvider, (_, next) {
-      if (next.hasStaff && state.staffList.isEmpty) {
-        state = state.copyWith(
-          salonId: next.salon?.id ?? 1,
-          staffList: next.staffList,
-        );
-      }
-    });
+    if (appData.hasCategories) {
+      state = state.copyWith(serviceList: appData.allServices);
+    }
 
     // Trigger load data nếu chưa được load - ưu tiên cho services
     if (!appData.isLoading && (!appData.hasStaff || !appData.hasCategories)) {
       final user = _ref.read(currentUserProvider);
       if (user != null) {
-        _ref.read(appDataProvider.notifier).loadAll(user.salonId ?? 1);
+        // Defer the loading to avoid modifying other providers during initialization
+        Future.microtask(() {
+          _ref.read(appDataProvider.notifier).loadAll(user.salonId ?? 1);
+        });
       }
     }
   }

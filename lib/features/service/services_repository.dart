@@ -25,8 +25,95 @@ class ServicesRepository {
       ApiEndpoints.services,
       queryParameters: {'salonId': salonId},
     );
-    return (response.data as List)
-        .map((e) => Service.fromJson(e))
-        .toList();
+    return (response.data as List).map((e) => Service.fromJson(e)).toList();
+  }
+
+  // Tạo category mới
+  Future<ServiceCategory> createCategory({
+    required int salonId,
+    required String name,
+    required String color,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.serviceCategories,
+      data: {
+        'salonId': salonId,
+        'name': name,
+        'color': color,
+        'sortOrder': 0,
+        'isActive': true,
+      },
+    );
+    return ServiceCategory.fromJson(response.data);
+  }
+
+  // Cập nhật category
+  Future<ServiceCategory> updateCategory({
+    required int id,
+    required String name,
+    required String color,
+    required bool isActive,
+  }) async {
+    final response = await _dio.patch(
+      ApiEndpoints.serviceCategoryById(id),
+      data: {'name': name, 'color': color, 'isActive': isActive},
+    );
+    return ServiceCategory.fromJson(response.data);
+  }
+
+  // Xóa category
+  Future<void> deleteCategory(int id) async {
+    await _dio.delete(ApiEndpoints.serviceCategoryById(id));
+  }
+
+  // Tạo service mới
+  Future<Service> createService({
+    required int salonId,
+    required int categoryId,
+    required String name,
+    required double price,
+    required int durationMinutes,
+    String? color,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.services,
+      data: {
+        'salonId': salonId,
+        'categoryId': categoryId,
+        'name': name,
+        'price': price,
+        'durationMinutes': durationMinutes,
+        'color': color,
+        'isActive': true,
+      },
+    );
+    return Service.fromJson(response.data);
+  }
+
+  // Cập nhật service
+  Future<Service> updateService({
+    required int id,
+    required String name,
+    required double price,
+    required int durationMinutes,
+    String? color,
+    required bool isActive,
+  }) async {
+    final response = await _dio.patch(
+      ApiEndpoints.serviceById(id),
+      data: {
+        'name': name,
+        'price': price,
+        'durationMinutes': durationMinutes,
+        'color': color,
+        'isActive': isActive,
+      },
+    );
+    return Service.fromJson(response.data);
+  }
+
+  // Xóa service
+  Future<void> deleteService(int id) async {
+    await _dio.delete(ApiEndpoints.serviceById(id));
   }
 }

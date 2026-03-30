@@ -14,6 +14,7 @@ import '../../../core/models/service.dart';
 import '../../../core/models/customer.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/bottom_navigation_bar.dart';
 
 final _vnd = NumberFormat('#,###', 'vi_VN');
 
@@ -51,17 +52,20 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             backgroundColor: const Color(0xFFEF4444),
           ),
         );
-        ref.read(posProvider.notifier).clearError();
+        // Delay để tránh modifying provider trong build
+        Future(() => ref.read(posProvider.notifier).clearError());
       }
       // Auto collapse khi có thợ được chọn (chỉ ở màn hình dọc)
       if (next.selectedStaff != null && !isStaffCollapsed) {
-        ref.read(staffCollapseProvider.notifier).state = true;
+        // Delay để tránh modifying provider trong build
+        Future(() => ref.read(staffCollapseProvider.notifier).state = true);
       }
     });
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D12),
       drawer: const AppDrawer(),
+      bottomNavigationBar: const PosBottomNavigationBar(),
       appBar: AppBar(
         backgroundColor: const Color(0xFF151520),
         elevation: 0,
@@ -292,7 +296,7 @@ class _StaffColumn extends ConsumerWidget {
             ),
           ),
         ),
-        if (pos.isLoadingStaffs || pos.staffList.isEmpty)
+        if (pos.staffList.isEmpty)
           const Center(
             child: CircularProgressIndicator(color: Color(0xFFFF6B9D)),
           )
@@ -338,7 +342,7 @@ class _StaffRow extends ConsumerWidget {
             ),
           ),
         ),
-        if (pos.isLoadingStaffs || pos.staffList.isEmpty)
+        if (pos.staffList.isEmpty)
           const Center(
             child: Padding(
               padding: EdgeInsets.all(16),

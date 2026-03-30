@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/service.dart';
 import '../../../core/models/service_category.dart';
 import '../../service/services_provider.dart';
+import '../../../core/providers/app_data_provider.dart';
 
 class ServicesPanel extends ConsumerStatefulWidget {
   final List<int> selectedIds;
@@ -27,31 +28,76 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesWithServicesProvider(widget.salonId));
+    final categoriesAsync = ref.watch(
+      categoriesWithServicesProvider(widget.salonId),
+    );
+    final appData = ref.watch(appDataProvider);
 
     return Column(
       children: [
         _buildSearchBar(),
         categoriesAsync.when(
-          loading: () => const Expanded(
-            child: Center(child: CircularProgressIndicator(color: Color(0xFFFF6B9D))),
-          ),
-          error: (err, _) => Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 40, color: Color(0xFFFF6B9D)),
-                  const SizedBox(height: 8),
-                  Text('Lỗi: $err', style: const TextStyle(color: Color(0xFFFF6B9D))),
-                  TextButton(
-                    onPressed: () => ref.refresh(categoriesWithServicesProvider(widget.salonId)),
-                    child: const Text('Thử lại', style: TextStyle(color: Color(0xFFFF6B9D))),
-                  ),
-                ],
+          loading: () {
+            // Show cached data if available while loading
+            if (appData.hasCategories) {
+              return Expanded(
+                child: Column(
+                  children: [
+                    _buildCategoryTabs(appData.categories),
+                    const Divider(height: 1),
+                    Expanded(child: _buildServiceGrid(appData.categories)),
+                  ],
+                ),
+              );
+            }
+            return const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFFFF6B9D)),
               ),
-            ),
-          ),
+            );
+          },
+          error: (err, _) {
+            // Fallback to cached data on error
+            if (appData.hasCategories) {
+              return Expanded(
+                child: Column(
+                  children: [
+                    _buildCategoryTabs(appData.categories),
+                    const Divider(height: 1),
+                    Expanded(child: _buildServiceGrid(appData.categories)),
+                  ],
+                ),
+              );
+            }
+            return Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 40,
+                      color: Color(0xFFFF6B9D),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Lỗi: $err',
+                      style: const TextStyle(color: Color(0xFFFF6B9D)),
+                    ),
+                    TextButton(
+                      onPressed: () => ref.refresh(
+                        categoriesWithServicesProvider(widget.salonId),
+                      ),
+                      child: const Text(
+                        'Thử lại',
+                        style: TextStyle(color: Color(0xFFFF6B9D)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
           data: (categories) => Expanded(
             child: Column(
               children: [
@@ -81,9 +127,9 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
           prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey.shade400),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-            icon: const Icon(Icons.clear, size: 16),
-            onPressed: () => setState(() => _searchQuery = ''),
-          )
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                )
               : null,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
           border: OutlineInputBorder(
@@ -181,13 +227,18 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
   Widget _buildServiceGrid(List<ServiceCategory> categories) {
     // Filter theo search + category
     final filtered = categories
-        .where((cat) => _selectedCategoryId == null || cat.id == _selectedCategoryId)
+        .where(
+          (cat) => _selectedCategoryId == null || cat.id == _selectedCategoryId,
+        )
         .map((cat) {
-      final filteredServices = cat.services
-          .where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
-      return MapEntry(cat, filteredServices);
-    })
+          final filteredServices = cat.services
+              .where(
+                (s) =>
+                    s.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+              )
+              .toList();
+          return MapEntry(cat, filteredServices);
+        })
         .where((entry) => entry.value.isNotEmpty)
         .toList();
 
@@ -258,7 +309,8 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
                 mainAxisSpacing: 8,
               ),
               itemCount: services.length,
-              itemBuilder: (context, i) => _buildServiceCard(services[i], cat.color),
+              itemBuilder: (context, i) =>
+                  _buildServiceCard(services[i], cat.color),
             ),
 
             const SizedBox(height: 16),

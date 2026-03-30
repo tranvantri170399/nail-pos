@@ -1,6 +1,7 @@
 // lib/features/pos/widgets/app_drawer.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../core/providers/app_data_provider.dart';
 import '../../../core/providers/theme_provider.dart';
@@ -8,10 +9,29 @@ import '../../../core/providers/theme_provider.dart';
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
+  String _getCurrentRoute(BuildContext context) {
+    return GoRouter.of(context).routeInformationProvider.value.uri.path;
+  }
+
+  bool _isRouteActive(String currentRoute, String itemRoute) {
+    // Exact match
+    if (currentRoute == itemRoute) return true;
+
+    // Handle root route
+    if (currentRoute == '/' && itemRoute == '/home') return true;
+
+    // Handle sub-routes (for future expansion)
+    if (currentRoute.startsWith(itemRoute + '/') && itemRoute != '/')
+      return false;
+
+    return false;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final salon = ref.watch(salonProvider);
     final user = ref.watch(currentUserProvider);
+    final currentRoute = _getCurrentRoute(context);
 
     return Drawer(
       backgroundColor: const Color(0xFF151520),
@@ -34,15 +54,24 @@ class AppDrawer extends ConsumerWidget {
                       iconBg: const Color(0xFF2D1020),
                       title: 'Màn hình POS',
                       subtitle: 'Tạo đơn hàng',
-                      route: '/pos',
-                      isActive: true,
+                      route: '/home',
+                      isActive: _isRouteActive(currentRoute, '/home'),
                     ),
                     _DrawerItem(
-                      icon: '📋',
+                      icon: '�',
+                      iconBg: const Color(0xFF10B981),
+                      title: 'Dashboard',
+                      subtitle: 'Tổng quan',
+                      route: '/dashboard',
+                      isActive: _isRouteActive(currentRoute, '/dashboard'),
+                    ),
+                    _DrawerItem(
+                      icon: '��',
                       iconBg: const Color(0xFF0D1E2E),
                       title: 'Lịch hẹn',
                       subtitle: 'Hôm nay',
                       route: '/appointments',
+                      isActive: _isRouteActive(currentRoute, '/appointments'),
                     ),
                   ],
                 ),
@@ -55,6 +84,7 @@ class AppDrawer extends ConsumerWidget {
                       title: 'Nhân viên',
                       subtitle: 'Danh sách & ca làm',
                       route: '/staffs',
+                      isActive: _isRouteActive(currentRoute, '/staffs'),
                     ),
                     _DrawerItem(
                       icon: '✨',
@@ -62,6 +92,7 @@ class AppDrawer extends ConsumerWidget {
                       title: 'Dịch vụ',
                       subtitle: 'Danh mục & giá',
                       route: '/services',
+                      isActive: _isRouteActive(currentRoute, '/services'),
                     ),
                     _DrawerItem(
                       icon: '👤',
@@ -69,6 +100,7 @@ class AppDrawer extends ConsumerWidget {
                       title: 'Khách hàng',
                       subtitle: 'Danh sách',
                       route: '/customers',
+                      isActive: _isRouteActive(currentRoute, '/customers'),
                     ),
                   ],
                 ),
@@ -80,7 +112,8 @@ class AppDrawer extends ConsumerWidget {
                       iconBg: const Color(0xFF1A0A1A),
                       title: 'Doanh thu',
                       subtitle: 'Thống kê & báo cáo',
-                      route: '/reports',
+                      route: '/revenue-report',
+                      isActive: _isRouteActive(currentRoute, '/revenue-report'),
                     ),
                   ],
                 ),
@@ -93,6 +126,7 @@ class AppDrawer extends ConsumerWidget {
                       title: 'Cài đặt tiệm',
                       subtitle: 'Thông tin & giờ mở cửa',
                       route: '/settings',
+                      isActive: _isRouteActive(currentRoute, '/settings'),
                     ),
                     const _ThemeToggleItem(),
                   ],
@@ -261,12 +295,18 @@ class _DrawerItem extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.pop(context);
-        // TODO: dùng go_router
-        // context.go(route);
+        context.go(route);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        color: isActive ? const Color(0xFF1A0D1A) : Colors.transparent,
+        decoration: BoxDecoration(
+          color: isActive ? iconBg.withOpacity(0.2) : Colors.transparent,
+          border: Border(
+            left: isActive
+                ? BorderSide(color: iconBg, width: 3)
+                : BorderSide.none,
+          ),
+        ),
         child: Row(
           children: [
             Container(
@@ -287,7 +327,7 @@ class _DrawerItem extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isActive ? const Color(0xFFFF6B9D) : Colors.white,
+                      color: isActive ? iconBg : Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -318,6 +358,7 @@ class _DrawerItem extends StatelessWidget {
                   ),
                 ),
               ),
+            if (isActive) Icon(Icons.check_circle, color: iconBg, size: 18),
           ],
         ),
       ),
