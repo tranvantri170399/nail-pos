@@ -49,15 +49,26 @@ class Transaction {
   }) : id = 0;
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
+    final subtotal = double.tryParse(json['subtotal'].toString()) ?? 0;
+    final discountAmount = double.tryParse(json['discountAmount'].toString()) ?? 0;
+    final tipAmount = double.tryParse(json['tipAmount'].toString()) ?? 0;
+    final taxAmount = double.tryParse(json['taxAmount'].toString()) ?? 0;
+    final backendTotal = double.tryParse(json['totalAmount'].toString()) ?? 0;
+    // Nếu backend bỏ qua tip khi tính total, tự tính lại
+    final expectedTotal = subtotal + tipAmount + taxAmount - discountAmount;
+    final totalAmount = (backendTotal > 0 && (backendTotal - expectedTotal).abs() < 1)
+        ? backendTotal
+        : expectedTotal;
+
     return Transaction(
       id: int.tryParse(json['id'].toString()) ?? 0,
       appointmentId: int.tryParse(json['appointmentId'].toString()) ?? 0,
       salonId: int.tryParse(json['salonId'].toString()) ?? 0,
-      subtotal: double.tryParse(json['subtotal'].toString()) ?? 0,
-      discountAmount: double.tryParse(json['discountAmount'].toString()) ?? 0,
-      tipAmount: double.tryParse(json['tipAmount'].toString()) ?? 0,
-      taxAmount: double.tryParse(json['taxAmount'].toString()) ?? 0,
-      totalAmount: double.tryParse(json['totalAmount'].toString()) ?? 0,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
+      tipAmount: tipAmount,
+      taxAmount: taxAmount,
+      totalAmount: totalAmount,
       paymentMethod: json['paymentMethod'] ?? 'cash',
       status: json['status'] ?? 'pending',
       note: json['note'],
@@ -75,7 +86,7 @@ class Transaction {
     'discount_amount': discountAmount,
     'tip_amount': tipAmount,
     'tax_amount': taxAmount,
-    // Không gửi total_amount - để backend tự tính
+    'total_amount': totalAmount,
     'payment_method': paymentMethod,
     'status': status, // Backend sẽ override thành 'paid'
     'note': note,
@@ -91,6 +102,7 @@ class Transaction {
         'discount_amount': discountAmount,
         'tip_amount': tipAmount,
         'tax_amount': taxAmount,
+        'total_amount': totalAmount,
         'payment_method': paymentMethod,
         'status': status, // Backend sẽ override thành 'paid'
         'note': note,
