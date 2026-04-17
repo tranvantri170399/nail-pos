@@ -29,6 +29,10 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
         '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
       ),
     );
+    // Lọc bỏ appointment tạo từ POS (status='done') — chỉ hiện lịch đặt trước
+    final visibleAppts = (appointments.value ?? [])
+        .where((a) => a.status != 'done')
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D14),
@@ -99,7 +103,7 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
                 selectedDate: _selectedDate,
                 selectedStaffId: _selectedStaffId,
                 staffList: staffList,
-                appointments: appointments.value ?? [],
+                appointments: visibleAppts,
                 onDateSelected: (date) => setState(() => _selectedDate = date),
                 onStaffSelected: (id) => setState(() => _selectedStaffId = id),
               ),
@@ -125,16 +129,21 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
                         style: const TextStyle(color: Colors.red),
                       ),
                     ),
-                    data: (appts) => _Timeline(
-                      appointments: _selectedStaffId != null
-                          ? appts
-                                .where((a) => a.staffId == _selectedStaffId)
-                                .toList()
-                          : appts,
-                    ),
+                    data: (appts) {
+                      final filtered = appts
+                          .where((a) => a.status != 'done')
+                          .toList();
+                      return _Timeline(
+                        appointments: _selectedStaffId != null
+                            ? filtered
+                                  .where((a) => a.staffId == _selectedStaffId)
+                                  .toList()
+                            : filtered,
+                      );
+                    },
                   ),
                 ),
-                _StatBar(appointments: appointments.value ?? []),
+                _StatBar(appointments: visibleAppts),
               ],
             ),
           ),
@@ -147,7 +156,7 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
                 selectedDate: _selectedDate,
                 selectedStaffId: _selectedStaffId,
                 staffList: staffList,
-                appointments: appointments.value ?? [],
+                appointments: visibleAppts,
                 onDateSelected: (date) {
                   setState(() => _selectedDate = date);
                   Navigator.pop(context); // Close drawer after selection

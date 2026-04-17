@@ -115,11 +115,12 @@ class _AppointmentDetailScreenState
 
   Widget _buildStatusBadge(String status) {
     final (label, color) = switch (status) {
+      'pending' => ('Chờ xử lý', const Color(0xFF888899)),
       'confirmed' => ('Đã xác nhận', const Color(0xFF3B82F6)),
       'in_progress' => ('Đang thực hiện', const Color(0xFFA78BFA)),
       'completed' => ('Hoàn thành', const Color(0xFF1D9E75)),
       'cancelled' => ('Đã hủy', const Color(0xFFEF4444)),
-      _ => ('Đã xác nhận', const Color(0xFF3B82F6)),
+      _ => ('Chờ xử lý', const Color(0xFF888899)),
     };
 
     return Container(

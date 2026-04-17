@@ -257,13 +257,15 @@ class _AppointmentDetailDialogState
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _buildStatusChip('pending', 'Chờ xử lý'),
-                      const SizedBox(width: 8),
+                      _buildStatusChip('confirmed', 'Đã xác nhận'),
                       _buildStatusChip('in_progress', 'Đang làm'),
-                      const SizedBox(width: 8),
                       _buildStatusChip('completed', 'Hoàn thành'),
+                      _buildStatusChip('cancelled', 'Đã hủy'),
                     ],
                   ),
                 ],
@@ -470,37 +472,26 @@ class _AppointmentDetailDialogState
     );
   }
 
-  Color _getStatusColor() {
-    switch (widget.appointment.status) {
-      case 'completed':
-        return const Color(0xFF1D9E75);
-      case 'in_progress':
-        return const Color(0xFFA78BFA);
-      default:
-        return const Color(0xFF888899);
-    }
-  }
+  Color _getStatusColor() => _getStatusColorForStatus(widget.appointment.status);
 
   Color _getStatusColorForStatus(String status) {
-    switch (status) {
-      case 'completed':
-        return const Color(0xFF1D9E75);
-      case 'in_progress':
-        return const Color(0xFFA78BFA);
-      default:
-        return const Color(0xFF888899);
-    }
+    return switch (status) {
+      'completed' => const Color(0xFF1D9E75),
+      'in_progress' => const Color(0xFFA78BFA),
+      'confirmed' => const Color(0xFF3B82F6),
+      'cancelled' => const Color(0xFFEF4444),
+      _ => const Color(0xFF888899), // pending
+    };
   }
 
   IconData _getStatusIcon() {
-    switch (widget.appointment.status) {
-      case 'completed':
-        return Icons.check_circle;
-      case 'in_progress':
-        return Icons.play_circle;
-      default:
-        return Icons.schedule;
-    }
+    return switch (widget.appointment.status) {
+      'completed' => Icons.check_circle,
+      'in_progress' => Icons.play_circle,
+      'confirmed' => Icons.event_available,
+      'cancelled' => Icons.cancel,
+      _ => Icons.schedule, // pending
+    };
   }
 
   Future<void> _updateStatus() async {
