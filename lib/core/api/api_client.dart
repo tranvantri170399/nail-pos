@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/token_storage.dart';
 import 'api_endpoints.dart';
 
@@ -37,3 +38,8 @@ class ApiClient {
 
   Dio get dio => _dio;
 }
+
+// ════════════════════════════════════════════════════
+// PROVIDER
+// ════════════════════════════════════════════════════
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

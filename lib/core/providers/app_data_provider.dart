@@ -4,6 +4,7 @@ import '../../core/models/salon.dart';
 import '../../core/models/staff.dart';
 import '../../core/models/service.dart';
 import '../../core/models/service_category.dart';
+import '../../core/api/api_client.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import 'package:dio/dio.dart';
 
@@ -62,32 +63,43 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
 
   Future<void> loadAll(int salonId) async {
     state = state.copyWith(isLoading: true, error: null);
-    try {
-      // Load song song tất cả
-      final results = await Future.wait([
-        _loadSalon(salonId),
-        _loadStaffs(salonId),
-        _loadCategories(salonId),
-      ]);
+    Salon? salon;
+    List<Staff>? staffList;
+    List<ServiceCategory>? categories;
+    final errors = <String>[];
 
-      state = state.copyWith(
-        salon: results[0] as Salon,
-        staffList: results[1] as List<Staff>,
-        categories: results[2] as List<ServiceCategory>,
-        isLoading: false,
-      );
+    try {
+      salon = await _loadSalon(salonId);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Không tải được dữ liệu: $e',
-      );
+      errors.add('salon: $e');
     }
+
+    try {
+      staffList = await _loadStaffs(salonId);
+    } catch (e) {
+      errors.add('staffs: $e');
+    }
+
+    try {
+      categories = await _loadCategories(salonId);
+    } catch (e) {
+      errors.add('categories: $e');
+    }
+
+    state = state.copyWith(
+      salon: salon,
+      staffList: staffList,
+      categories: categories,
+      isLoading: false,
+      error: errors.isEmpty ? null : 'Không tải được dữ liệu: ${errors.join(' | ')}',
+    );
   }
 
   // Load riêng categories cho services
   Future<void> loadCategoriesOnly(int salonId) async {
-    if (state.hasCategories || _isCategoriesLoading)
+    if (state.hasCategories || _isCategoriesLoading) {
       return; // Đã có rồi hoặc đang load
+    }
 
     _isCategoriesLoading = true;
     try {

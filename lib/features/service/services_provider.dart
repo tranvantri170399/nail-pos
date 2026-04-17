@@ -1,12 +1,14 @@
 // lib/features/services/services_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/api/api_client.dart';
 import '../../core/models/service_category.dart';
 import '../../core/providers/app_data_provider.dart';
+import '../../core/api/api_client.dart';
+import '../auth/providers/auth_provider.dart';
 import 'services_repository.dart';
 
 final servicesRepositoryProvider = Provider<ServicesRepository>((ref) {
-  return ServicesRepository(ApiClient().dio);
+  final apiClient = ref.watch(apiClientProvider);
+  return ServicesRepository(apiClient.dio);
 });
 
 // Provider lấy categories + services theo salonId

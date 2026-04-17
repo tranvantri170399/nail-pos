@@ -2,7 +2,7 @@
 
 class ApiEndpoints {
   static const String baseUrl =
-      'https://nail-pos-api-production.up.railway.app';
+      'https://nail-pos-api.onrender.com';
   // static const String baseUrl = 'http://localhost:3000';
   // ── Auth ─────────────────────────────────────────────────
   static const String ownerLogin = '/auth/owner/login';

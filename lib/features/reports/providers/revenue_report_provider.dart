@@ -6,7 +6,8 @@ import '../../auth/providers/auth_provider.dart';
 import '../repositories/reports_repository.dart';
 
 final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
-  return ReportsRepository(ApiClient().dio);
+  final apiClient = ref.watch(apiClientProvider);
+  return ReportsRepository(apiClient.dio);
 });
 
 // Revenue Report State

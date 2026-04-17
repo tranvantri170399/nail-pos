@@ -1,11 +1,13 @@
 // lib/features/transactions/transactions_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/api/api_client.dart';
 import '../../core/models/transaction.dart';
+import '../../core/api/api_client.dart';
+import '../auth/providers/auth_provider.dart';
 import 'transactions_repository.dart';
 
 final transactionsRepositoryProvider = Provider<TransactionsRepository>((ref) {
-  return TransactionsRepository(ApiClient().dio);
+  final apiClient = ref.watch(apiClientProvider);
+  return TransactionsRepository(apiClient.dio);
 });
 
 // State cho checkout

@@ -112,8 +112,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // ════════════════════════════════════════════════════
 // 3. PROVIDERS
 // ════════════════════════════════════════════════════
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
-
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return AuthRepository(apiClient.dio);

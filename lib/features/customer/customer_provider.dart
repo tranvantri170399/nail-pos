@@ -5,7 +5,8 @@ import '../../core/models/customer.dart';
 import 'customer_repository.dart';
 
 final customerRepositoryProvider = Provider<CustomerRepository>((ref) {
-  return CustomerRepository(ApiClient().dio);
+  final apiClient = ref.watch(apiClientProvider);
+  return CustomerRepository(apiClient.dio);
 });
 
 // Provider cho customer list
