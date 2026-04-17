@@ -6,6 +6,7 @@ import '../../../core/models/service.dart';
 import '../../../core/models/customer.dart';
 import '../../../core/models/appointment.dart';
 import '../../../core/models/transaction.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/providers/app_data_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../repositories/pos_repository.dart';
@@ -30,6 +31,12 @@ class PosState {
   final List<Service> selectedServices;
   final Customer? selectedCustomer;
 
+  // Tip / Discount / Tax / Cash
+  final double tipAmount;
+  final double discountAmount;
+  final double taxRate; // VD: 0.08 = 8%
+  final double cashReceived;
+
   // UI state
   final bool isLoadingStaffs;
   final bool isLoadingServices;
@@ -47,6 +54,10 @@ class PosState {
     this.selectedStaff,
     this.selectedServices = const [],
     this.selectedCustomer,
+    this.tipAmount = 0,
+    this.discountAmount = 0,
+    this.taxRate = 0,
+    this.cashReceived = 0,
     this.isLoadingStaffs = false,
     this.isLoadingServices = false,
     this.isSearchingCustomer = false,
@@ -57,8 +68,21 @@ class PosState {
     this.lastTransaction,
   });
 
-  // ── Tính tổng tiền ──────────────────────────────────
-  double get totalPrice => selectedServices.fold(0, (sum, s) => sum + s.price);
+  // ── Tạm tính (tổng dịch vụ) ──────────────────────────
+  double get subtotal => selectedServices.fold(0, (sum, s) => sum + s.price);
+
+  // ── Thuế tính trên subtotal ──────────────────────────
+  double get taxAmount => (subtotal * taxRate).roundToDouble();
+
+  // ── Tổng sau tip/tax/discount ────────────────────────
+  double get grandTotal => subtotal + tipAmount + taxAmount - discountAmount;
+
+  // ── Tiền thừa trả lại ───────────────────────────────
+  double get changeDue =>
+      cashReceived > 0 ? cashReceived - grandTotal : 0;
+
+  // ── Alias để tương thích ─────────────────────────────
+  double get totalPrice => subtotal;
 
   // ── Tính tổng thời gian ─────────────────────────────
   int get totalMinutes =>
@@ -75,6 +99,10 @@ class PosState {
     Staff? selectedStaff,
     List<Service>? selectedServices,
     Customer? selectedCustomer,
+    double? tipAmount,
+    double? discountAmount,
+    double? taxRate,
+    double? cashReceived,
     bool? isLoadingStaffs,
     bool? isLoadingServices,
     bool? isSearchingCustomer,
@@ -89,6 +117,7 @@ class PosState {
     Transaction? lastTransaction,
   }) {
     return PosState(
+      salonId: salonId ?? this.salonId,
       staffList: staffList ?? this.staffList,
       serviceList: serviceList ?? this.serviceList,
       selectedStaff: clearStaff ? null : (selectedStaff ?? this.selectedStaff),
@@ -96,6 +125,10 @@ class PosState {
       selectedCustomer: clearCustomer
           ? null
           : (selectedCustomer ?? this.selectedCustomer),
+      tipAmount: tipAmount ?? this.tipAmount,
+      discountAmount: discountAmount ?? this.discountAmount,
+      taxRate: taxRate ?? this.taxRate,
+      cashReceived: cashReceived ?? this.cashReceived,
       isLoadingStaffs: isLoadingStaffs ?? this.isLoadingStaffs,
       isLoadingServices: isLoadingServices ?? this.isLoadingServices,
       isSearchingCustomer: isSearchingCustomer ?? this.isSearchingCustomer,
@@ -121,6 +154,7 @@ class PosNotifier extends StateNotifier<PosState> {
   PosNotifier(this._repo, this._ref) : super(const PosState()) {
     _initSalonId(); // ← init salonId trước
     _initFromCache();
+    _listenAppData();
   }
 
   void _initSalonId() {
@@ -129,6 +163,18 @@ class PosNotifier extends StateNotifier<PosState> {
       print("salon id: ${user.salonId}");
       state = state.copyWith(salonId: user.salonId ?? 1);
     }
+  }
+
+  void _listenAppData() {
+    _ref.listen<AppDataState>(appDataProvider, (_, next) {
+      if (next.salon != null || next.hasStaff || next.hasCategories) {
+        state = state.copyWith(
+          salonId: next.salon?.id ?? state.salonId,
+          staffList: next.staffList,
+          serviceList: next.allServices,
+        );
+      }
+    });
   }
 
   // Load staffs + services khi mở màn hình
@@ -162,6 +208,33 @@ class PosNotifier extends StateNotifier<PosState> {
       staffList: state.staffList,
       serviceList: state.serviceList,
       paymentMethod: 'cash', // Reset về mặc định
+      tipAmount: 0,
+      discountAmount: 0,
+      taxRate: 0,
+      cashReceived: 0,
+    );
+  }
+
+  // ── Đặt tip ──────────────────────────────────────────
+  void setTip(double amount) {
+    state = state.copyWith(tipAmount: amount < 0 ? 0 : amount);
+  }
+
+  // ── Đặt tiền nhận ─────────────────────────────────────
+  void setCashReceived(double amount) {
+    state = state.copyWith(cashReceived: amount < 0 ? 0 : amount);
+  }
+
+  // ── Đặt tax rate ──────────────────────────────────────
+  void setTaxRate(double rate) {
+    state = state.copyWith(taxRate: rate < 0 ? 0 : rate);
+  }
+
+  // ── Đặt giảm giá ─────────────────────────────────────
+  void setDiscount(double amount) {
+    final max = state.subtotal + state.tipAmount;
+    state = state.copyWith(
+      discountAmount: amount < 0 ? 0 : (amount > max ? max : amount),
     );
   }
 
@@ -241,7 +314,7 @@ class PosNotifier extends StateNotifier<PosState> {
       final List<Map<String, dynamic>> itemsData = [];
       for (int i = 0; i < state.selectedServices.length; i++) {
         final service = state.selectedServices[i];
-        final commissionRate = 10.0; // TODO: Lấy từ DB
+        final commissionRate = state.selectedStaff!.commissionRate;
 
         itemsData.add({
           'service_id': service.id,
@@ -256,11 +329,11 @@ class PosNotifier extends StateNotifier<PosState> {
       final transaction = Transaction.create(
         appointmentId: appointmentId,
         salonId: state.salonId,
-        subtotal: state.totalPrice,
-        discountAmount: 0,
-        tipAmount: 0,
-        taxAmount: 0,
-        totalAmount: state.totalPrice, // Backend sẽ tính lại
+        subtotal: state.subtotal,
+        discountAmount: state.discountAmount,
+        tipAmount: state.tipAmount,
+        taxAmount: state.taxAmount,
+        totalAmount: state.grandTotal,
         paymentMethod: state.paymentMethod, // ← Dùng phương thức đã chọn
         status: 'completed', // Backend sẽ override
         note: note,

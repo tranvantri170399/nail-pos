@@ -336,7 +336,13 @@ class _BillCard extends StatelessWidget {
       children: [
         _buildSummaryRow('Tạm tính', '${vnd.format(transaction.subtotal)}đ'),
         if (transaction.tipAmount > 0)
-          _buildSummaryRow('Tip', '${vnd.format(transaction.tipAmount)}đ'),
+          _buildSummaryRow('Tip', '+ ${vnd.format(transaction.tipAmount)}đ'),
+        if (transaction.taxAmount > 0)
+          _buildSummaryRow(
+            'Thuế',
+            '+ ${vnd.format(transaction.taxAmount)}đ',
+            orange: true,
+          ),
         if (transaction.discountAmount > 0)
           _buildSummaryRow(
             'Giảm giá',
@@ -369,7 +375,17 @@ class _BillCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool green = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool green = false,
+    bool orange = false,
+  }) {
+    final Color valueColor = green
+        ? const Color(0xFF1D9E75)
+        : orange
+            ? const Color(0xFFFFB347)
+            : const Color(0xFF888899);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -381,10 +397,7 @@ class _BillCard extends StatelessWidget {
           ),
           Text(
             value,
-            style: TextStyle(
-              color: green ? const Color(0xFF1D9E75) : const Color(0xFF888899),
-              fontSize: 12,
-            ),
+            style: TextStyle(color: valueColor, fontSize: 12),
           ),
         ],
       ),

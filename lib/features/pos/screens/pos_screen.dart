@@ -1134,6 +1134,41 @@ class _CollapsedStaffCard extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════
+// SUMMARY LINE (breakdown row)
+// ════════════════════════════════════════════════════
+class _SummaryLine extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  const _SummaryLine({
+    required this.label,
+    required this.value,
+    this.valueColor = const Color(0xFF888899),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Color(0xFF555566), fontSize: 12),
+          ),
+          Text(
+            value,
+            style: TextStyle(color: valueColor, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════
 // ORDER SUMMARY
 // ════════════════════════════════════════════════════
 class _OrderSummary extends ConsumerWidget {
@@ -1217,6 +1252,7 @@ class _OrderSummary extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pos = ref.watch(posProvider);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
@@ -1305,6 +1341,38 @@ class _OrderSummary extends ConsumerWidget {
               ],
             ),
 
+          // Tip & Giảm giá (chỉ hiện khi có dịch vụ)
+          if (pos.selectedServices.isNotEmpty) ...[
+            const _TipDiscountSection(),
+            const SizedBox(height: 10),
+          ],
+
+          // Breakdown chi tiết (hiện khi có điều chỉnh)
+          if (pos.tipAmount > 0 || pos.discountAmount > 0 || pos.taxRate > 0) ...[
+            _SummaryLine(
+              label: 'Tạm tính',
+              value: '${_vnd.format(pos.subtotal)}đ',
+            ),
+            if (pos.tipAmount > 0)
+              _SummaryLine(
+                label: 'Tip',
+                value: '+ ${_vnd.format(pos.tipAmount)}đ',
+              ),
+            if (pos.taxAmount > 0)
+              _SummaryLine(
+                label: 'Thuế (${(pos.taxRate * 100).toStringAsFixed(0)}%)',
+                value: '+ ${_vnd.format(pos.taxAmount)}đ',
+                valueColor: const Color(0xFFFFB347),
+              ),
+            if (pos.discountAmount > 0)
+              _SummaryLine(
+                label: 'Giảm giá',
+                value: '- ${_vnd.format(pos.discountAmount)}đ',
+                valueColor: const Color(0xFF4CAF50),
+              ),
+            const Divider(color: Color(0xFF252535), height: 12),
+          ],
+
           // Tổng
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1317,7 +1385,7 @@ class _OrderSummary extends ConsumerWidget {
                     style: TextStyle(color: Color(0xFF555566), fontSize: 12),
                   ),
                   Text(
-                    '${_vnd.format(pos.totalPrice)}đ',
+                    '${_vnd.format(pos.grandTotal)}đ',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -1374,7 +1442,11 @@ class _OrderSummary extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          // Tiền nhận / Tiền thừa (chỉ khi chọn tiền mặt)
+          if (pos.paymentMethod == 'cash' && pos.selectedServices.isNotEmpty) ...[            const _CashSection(),
+            const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 4),
           // Nút thanh toán
           SizedBox(
             width: double.infinity,
@@ -1414,6 +1486,465 @@ class _OrderSummary extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════
+// TIP & DISCOUNT SECTION
+// ════════════════════════════════════════════════════
+class _TipDiscountSection extends ConsumerStatefulWidget {
+  const _TipDiscountSection();
+
+  @override
+  ConsumerState<_TipDiscountSection> createState() =>
+      _TipDiscountSectionState();
+}
+
+class _TipDiscountSectionState extends ConsumerState<_TipDiscountSection> {
+  final _discountCtrl = TextEditingController();
+
+  static const _quickTips = [0.0, 20000.0, 50000.0, 100000.0];
+
+  @override
+  void dispose() {
+    _discountCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showCustomTipDialog(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text(
+          'Nhập tip',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'Số tiền...',
+            hintStyle: TextStyle(color: Color(0xFF555566)),
+            suffixText: 'đ',
+            suffixStyle: TextStyle(color: Color(0xFF888899)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Color(0xFF888899)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final v =
+                  double.tryParse(ctrl.text.replaceAll(',', '')) ?? 0;
+              ref.read(posProvider.notifier).setTip(v);
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'OK',
+              style: TextStyle(color: Color(0xFFFF6B9D)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pos = ref.watch(posProvider);
+    final notifier = ref.read(posProvider.notifier);
+    final isCustomTip =
+        pos.tipAmount > 0 && !_quickTips.contains(pos.tipAmount);
+
+    ref.listen<PosState>(posProvider, (prev, next) {
+      if (next.discountAmount == 0 && (prev?.discountAmount ?? 0) != 0) {
+        _discountCtrl.clear();
+      }
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── TIP ─────────────────────────────────────────
+        Row(
+          children: [
+            const SizedBox(
+              width: 44,
+              child: Text(
+                'TIP',
+                style: TextStyle(
+                  color: Color(0xFF555566),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            _TipChip(
+              label: 'Không',
+              selected: pos.tipAmount == 0,
+              onTap: () => notifier.setTip(0),
+            ),
+            _TipChip(
+              label: '20k',
+              selected: pos.tipAmount == 20000,
+              onTap: () => notifier.setTip(20000),
+            ),
+            _TipChip(
+              label: '50k',
+              selected: pos.tipAmount == 50000,
+              onTap: () => notifier.setTip(50000),
+            ),
+            _TipChip(
+              label: '100k',
+              selected: pos.tipAmount == 100000,
+              onTap: () => notifier.setTip(100000),
+            ),
+            _TipChip(
+              label: isCustomTip
+                  ? '${(pos.tipAmount ~/ 1000).toInt()}k✎'
+                  : 'Khác',
+              selected: isCustomTip,
+              onTap: () => _showCustomTipDialog(context),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // ── THUẾ ─────────────────────────────────────────
+        Row(
+          children: [
+            const SizedBox(
+              width: 44,
+              child: Text(
+                'THUẾ',
+                style: TextStyle(
+                  color: Color(0xFF555566),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            _TipChip(
+              label: '0%',
+              selected: pos.taxRate == 0,
+              onTap: () => notifier.setTaxRate(0),
+            ),
+            _TipChip(
+              label: '5%',
+              selected: pos.taxRate == 0.05,
+              onTap: () => notifier.setTaxRate(0.05),
+            ),
+            _TipChip(
+              label: '8%',
+              selected: pos.taxRate == 0.08,
+              onTap: () => notifier.setTaxRate(0.08),
+            ),
+            _TipChip(
+              label: '10%',
+              selected: pos.taxRate == 0.10,
+              onTap: () => notifier.setTaxRate(0.10),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // ── GIẢM GIÁ ────────────────────────────────
+        Row(
+          children: [
+            const SizedBox(
+              width: 44,
+              child: Text(
+                'GIẢM',
+                style: TextStyle(
+                  color: Color(0xFF555566),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: TextField(
+                  controller: _discountCtrl,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF333344),
+                      fontSize: 13,
+                    ),
+                    suffixText: 'đ',
+                    suffixStyle: const TextStyle(
+                      color: Color(0xFF555566),
+                      fontSize: 13,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF151520),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF252535)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF252535)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFFF6B9D)),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    final v =
+                        double.tryParse(val.replaceAll(',', '')) ?? 0;
+                    notifier.setDiscount(v);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════
+// CASH RECEIVED SECTION
+// ════════════════════════════════════════════════════
+class _CashSection extends ConsumerStatefulWidget {
+  const _CashSection();
+
+  @override
+  ConsumerState<_CashSection> createState() => _CashSectionState();
+}
+
+class _CashSectionState extends ConsumerState<_CashSection> {
+  final _cashCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _cashCtrl.dispose();
+    super.dispose();
+  }
+
+  List<double> _quickAmounts(double total) {
+    final result = <double>[total];
+    final r50 = (total / 50000).ceil() * 50000.0;
+    if (r50 > total) result.add(r50);
+    for (final a in [200000.0, 500000.0, 1000000.0, 2000000.0]) {
+      if (a > total && !result.contains(a)) result.add(a);
+      if (result.length >= 4) break;
+    }
+    return result.take(4).toList();
+  }
+
+  String _chipLabel(double amt, double total) {
+    if (amt == total) return 'Đúng tiền';
+    if (amt >= 1000000) return '${(amt / 1000000).toStringAsFixed(amt % 1000000 == 0 ? 0 : 1)}tr';
+    return '${(amt ~/ 1000).toInt()}k';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pos = ref.watch(posProvider);
+    final notifier = ref.read(posProvider.notifier);
+    final total = pos.grandTotal;
+    final received = pos.cashReceived;
+    final change = received > 0 ? received - total : null;
+    final isShort = change != null && change < 0;
+
+    ref.listen<PosState>(posProvider, (prev, next) {
+      if (next.cashReceived == 0 && (prev?.cashReceived ?? 0) != 0) {
+        _cashCtrl.clear();
+      }
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(color: Color(0xFF252535), height: 16),
+        // ── Quick chips ─────────────────────────────────────
+        Row(
+          children: [
+            const SizedBox(
+              width: 44,
+              child: Text(
+                'NHẬN',
+                style: TextStyle(
+                  color: Color(0xFF555566),
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            ..._quickAmounts(total).map(
+              (amt) => _TipChip(
+                label: _chipLabel(amt, total),
+                selected: received == amt,
+                onTap: () {
+                  notifier.setCashReceived(amt);
+                  _cashCtrl.text = amt == total
+                      ? ''
+                      : _vnd.format(amt).replaceAll(',', '.');
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        // ── Custom input ────────────────────────────────────
+        Row(
+          children: [
+            const SizedBox(width: 44),
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: TextField(
+                  controller: _cashCtrl,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập số tiền...',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF333344),
+                      fontSize: 13,
+                    ),
+                    suffixText: 'đ',
+                    suffixStyle: const TextStyle(
+                      color: Color(0xFF555566),
+                      fontSize: 13,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF151520),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isShort
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF252535),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isShort
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF252535),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFFF6B9D)),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    final v =
+                        double.tryParse(val.replaceAll(',', '').replaceAll('.', '')) ?? 0;
+                    notifier.setCashReceived(v);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        // ── Change due / insufficient ───────────────────────────
+        if (change != null) ...[          const SizedBox(height: 6),
+          Row(
+            children: [
+              const SizedBox(width: 44),
+              Icon(
+                isShort ? Icons.warning_amber_rounded : Icons.check_circle,
+                size: 14,
+                color: isShort
+                    ? const Color(0xFFEF4444)
+                    : const Color(0xFF4CAF50),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                isShort
+                    ? 'Thiếu: ${_vnd.format(change.abs())}đ'
+                    : 'Tiền thừa: ${_vnd.format(change)}đ',
+                style: TextStyle(
+                  color: isShort
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFF4CAF50),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════
+// TIP CHIP
+// ════════════════════════════════════════════════════
+class _TipChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TipChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFFF6B9D).withOpacity(0.15)
+              : const Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFFFF6B9D)
+                : const Color(0xFF252535),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected
+                ? const Color(0xFFFF6B9D)
+                : const Color(0xFF888899),
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
