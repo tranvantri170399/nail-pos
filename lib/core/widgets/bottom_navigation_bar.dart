@@ -34,7 +34,7 @@ class AppBottomNavigationBar extends StatelessWidget {
     final theme = Theme.of(context);
     final activeColorFinal = activeColor ?? theme.colorScheme.primary;
     final inactiveColorFinal =
-        inactiveColor ?? theme.colorScheme.onSurface.withOpacity(0.6);
+        inactiveColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.6);
     final backgroundColorFinal = backgroundColor ?? theme.colorScheme.surface;
 
     return Container(
@@ -42,7 +42,7 @@ class AppBottomNavigationBar extends StatelessWidget {
         color: backgroundColorFinal,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),

@@ -53,6 +53,11 @@ dependencies:
   # Noto fonts for emoji support
   google_fonts: ^6.2.1
 
+  # PDF + print/share bill
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  universal_html: ^2.2.4
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8

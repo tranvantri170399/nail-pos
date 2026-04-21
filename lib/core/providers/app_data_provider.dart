@@ -5,7 +5,6 @@ import '../../core/models/staff.dart';
 import '../../core/models/service.dart';
 import '../../core/models/service_category.dart';
 import '../../core/api/api_client.dart';
-import '../../features/auth/providers/auth_provider.dart';
 import 'package:dio/dio.dart';
 
 // ════════════════════════════════════════════════════
@@ -108,9 +107,8 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
       if (!state.isLoading) {
         state = state.copyWith(categories: categories);
       }
-    } catch (e) {
-      // Không update error, chỉ log
-      print('Failed to load categories: $e');
+    } catch (_) {
+      // Không update error, chỉ bỏ qua để tránh ghi đè lỗi chính
     } finally {
       _isCategoriesLoading = false;
     }
@@ -118,7 +116,6 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
 
   Future<Salon> _loadSalon(int salonId) async {
     final res = await _dio.get('/salons/$salonId');
-    print("***_loadSalon***" + res.toString());
     return Salon.fromJson(res.data);
   }
 
@@ -127,7 +124,6 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
       '/staffs',
       queryParameters: {'salonId': salonId},
     );
-    print("***_loadStaffs***" + res.toString());
     return (res.data as List).map((e) => Staff.fromJson(e)).toList();
   }
 
@@ -136,7 +132,6 @@ class AppDataNotifier extends StateNotifier<AppDataState> {
       '/service-categories',
       queryParameters: {'salonId': salonId},
     );
-    print("***_loadCategories***" + res.toString());
     return (res.data as List).map((e) => ServiceCategory.fromJson(e)).toList();
   }
 

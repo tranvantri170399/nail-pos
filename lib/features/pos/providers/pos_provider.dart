@@ -160,7 +160,6 @@ class PosNotifier extends StateNotifier<PosState> {
   void _initSalonId() {
     final user = _ref.read(currentUserProvider);
     if (user != null) {
-      print("salon id: ${user.salonId}");
       state = state.copyWith(salonId: user.salonId ?? 1);
     }
   }
@@ -340,25 +339,16 @@ class PosNotifier extends StateNotifier<PosState> {
         paidAt: now,
       );
 
-      // Debug: Print appointmentId
-      print('Creating transaction with appointmentId: $appointmentId');
-
-      // Print data being sent
-      final dataToSend = transaction.toJsonWithItems(itemsData);
-      print('Transaction data being sent: $dataToSend');
-
       Transaction createdTransaction = await _repo.createTransaction(
         transaction,
         itemsData: itemsData,
       );
-      print('Transaction created: ${createdTransaction.toString()}');
       state = state.copyWith(
         isCheckingOut: false,
         checkoutSuccess: '#${createdTransaction.id}',
         lastTransaction: createdTransaction,
       );
     } catch (e) {
-      print(e);
       state = state.copyWith(
         isCheckingOut: false,
         error: 'Thanh toán thất bại: $e',

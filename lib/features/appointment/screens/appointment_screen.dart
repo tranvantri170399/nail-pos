@@ -175,7 +175,7 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
   void _showCreateDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => const CreateAppointmentDialog(),
+      builder: (context) => const CreateAppointmentDialog(),
     );
   }
 
@@ -398,7 +398,7 @@ class _MiniCalendarState extends State<_MiniCalendar> {
               childAspectRatio: 1,
             ),
             itemCount: startWeekday + daysInMonth,
-            itemBuilder: (_, i) {
+            itemBuilder: (context, i) {
               if (i < startWeekday) return const SizedBox();
               final day = i - startWeekday + 1;
               final date = DateTime(_viewMonth.year, _viewMonth.month, day);
@@ -500,7 +500,7 @@ class _Timeline extends StatelessWidget {
                   Column(
                     children: hours
                         .map(
-                          (_) => Container(
+                          (hour) => Container(
                             height: 60,
                             decoration: const BoxDecoration(
                               border: Border(
@@ -604,7 +604,7 @@ class _Timeline extends StatelessWidget {
   void _showAppointmentDetail(BuildContext context, dynamic appt) {
     showDialog(
       context: context,
-      builder: (_) => AppointmentDetailDialog(appointment: appt),
+      builder: (context) => AppointmentDetailDialog(appointment: appt),
     );
   }
 }
@@ -732,7 +732,7 @@ class _StaffChip extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF252535),

@@ -105,7 +105,7 @@ class _StaffFormScreenState extends ConsumerState<StaffFormScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withOpacity(0.1),
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFEF4444)),
                         ),
@@ -187,7 +187,7 @@ class _StaffFormScreenState extends ConsumerState<StaffFormScreen> {
                           'Đang hoạt động',
                           style: TextStyle(color: Colors.white, fontSize: 14),
                         ),
-                        activeColor: const Color(0xFF10B981),
+                        activeThumbColor: const Color(0xFF10B981),
                       ),
                     ],
                     const SizedBox(height: 32),
@@ -315,7 +315,7 @@ class _StaffFormScreenState extends ConsumerState<StaffFormScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Color(int.parse(color['value']!.replaceFirst('#', '0xFF'))).withOpacity(0.2)
+                  ? Color(int.parse(color['value']!.replaceFirst('#', '0xFF'))).withValues(alpha: 0.2)
                   : const Color(0xFF1A1A28),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(

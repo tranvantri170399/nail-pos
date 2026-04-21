@@ -2,7 +2,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/transaction.dart';
 import '../../core/api/api_client.dart';
-import '../auth/providers/auth_provider.dart';
 import 'transactions_repository.dart';
 
 final transactionsRepositoryProvider = Provider<TransactionsRepository>((ref) {

@@ -58,9 +58,6 @@ class PosRepository {
         ? transaction.toJsonWithItems(itemsData)
         : transaction.toJson();
 
-    // Debug: Print data being sent
-    print('Transaction data being sent: $data');
-
     final response = await _dio.post(ApiEndpoints.transactions, data: data);
     return Transaction.fromJson(
       response.data,

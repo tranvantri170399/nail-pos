@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/services/printer_service.dart';
 import '../../../core/models/transaction.dart';
 import '../../../core/providers/app_data_provider.dart';
 
@@ -32,7 +33,7 @@ class TransactionList extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -58,7 +59,7 @@ class TransactionList extends StatelessWidget {
                   Text(
                     'Hiển thị ${displayTransactions.length}/${transactions.length}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
               ],
@@ -107,7 +108,7 @@ class TransactionList extends StatelessWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _getStatusColor(transaction.status).withOpacity(0.1),
+                                    color: _getStatusColor(transaction.status).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -127,7 +128,7 @@ class TransactionList extends StatelessWidget {
                                 Icon(
                                   Icons.access_time,
                                   size: 12,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -135,7 +136,7 @@ class TransactionList extends StatelessWidget {
                                       ? '${dateFormat.format(transaction.paidAt!)} ${timeFormat.format(transaction.paidAt!)}'
                                       : 'Chưa thanh toán',
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                   ),
                                 ),
                               ],
@@ -146,13 +147,13 @@ class TransactionList extends StatelessWidget {
                                 Icon(
                                   Icons.payment,
                                   size: 12,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   _getPaymentMethodLabel(transaction.paymentMethod),
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                   ),
                                 ),
                                 if (transaction.items.isNotEmpty) ...[
@@ -160,7 +161,7 @@ class TransactionList extends StatelessWidget {
                                   Text(
                                     '${transaction.items.length} dịch vụ',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
@@ -201,11 +202,11 @@ class TransactionList extends StatelessWidget {
                 if (!isLast)
                   Divider(
                     height: 1,
-                    color: theme.colorScheme.outline.withOpacity(0.1),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.1),
                   ),
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -272,7 +273,9 @@ class TransactionDetailDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final staffList = ref.watch(appDataProvider).staffList;
+    final appData = ref.watch(appDataProvider);
+    final staffList = appData.staffList;
+    final salon = appData.salon;
     final vnd = NumberFormat('#,###', 'vi_VN');
     final dateTimeFormat = DateFormat('HH:mm · dd/MM/yyyy');
 
@@ -298,7 +301,7 @@ class TransactionDetailDialog extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(Icons.receipt_long, color: statusColor, size: 20),
@@ -325,7 +328,7 @@ class TransactionDetailDialog extends ConsumerWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.12),
+                                color: statusColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -526,7 +529,75 @@ class TransactionDetailDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              // ── Đóng ─────────────────────────────────
+              // ── Actions ──────────────────────────────
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await ref
+                              .read(printerServiceProvider)
+                              .printBill(transaction: transaction, salon: salon);
+                        } catch (e, st) {
+                          debugPrint('[TransactionDetailDialog] printBill error: $e');
+                          debugPrintStack(
+                            label: '[TransactionDetailDialog] printBill stack',
+                            stackTrace: st,
+                          );
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Không thể in bill: $e')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF6B9D),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.print, size: 16),
+                      label: const Text('In bill'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await ref
+                              .read(printerServiceProvider)
+                              .shareBill(transaction: transaction, salon: salon);
+                        } catch (e, st) {
+                          debugPrint('[TransactionDetailDialog] shareBill error: $e');
+                          debugPrintStack(
+                            label: '[TransactionDetailDialog] shareBill stack',
+                            stackTrace: st,
+                          );
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Không thể chia sẻ PDF: $e')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.share, size: 16),
+                      label: const Text('Chia sẻ PDF'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: TextButton(

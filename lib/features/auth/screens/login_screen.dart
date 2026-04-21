@@ -28,9 +28,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next is AuthAuthenticated) {
         // Điều hướng dựa theo type
         if (next.user.isOwner) {
-          context.go(AppRoutes.home);
-        } else {
           context.go(AppRoutes.dashboard);
+        } else {
+          context.go(AppRoutes.home);
         }
       }
     });
@@ -121,9 +121,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xffef444415),
+                    color: const Color(0x15EF4444),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFEF444440)),
+                    border: Border.all(color: const Color(0x40EF4444)),
                   ),
                   child: Row(
                     children: [
@@ -166,7 +166,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ? const Color(0xFF151520)
               : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -174,7 +174,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -207,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: color.withOpacity(0.6)),
+            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.6)),
           ],
         ),
       ),

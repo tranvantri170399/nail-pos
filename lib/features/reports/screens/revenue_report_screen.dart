@@ -291,13 +291,13 @@ class _RevenueReportScreenState extends ConsumerState<RevenueReportScreen> {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
             Icon(
               Icons.date_range,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -310,7 +310,7 @@ class _RevenueReportScreenState extends ConsumerState<RevenueReportScreen> {
             ),
             Icon(
               Icons.arrow_drop_down,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ],
         ),
@@ -439,20 +439,20 @@ class _RevenueReportScreenState extends ConsumerState<RevenueReportScreen> {
           Icon(
             Icons.bar_chart,
             size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'Chưa có dữ liệu báo cáo',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Chọn khoảng thời gian để xem báo cáo doanh thu',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 24),

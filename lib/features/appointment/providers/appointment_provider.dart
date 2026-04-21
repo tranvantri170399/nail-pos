@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/appointment.dart';
 import '../../../core/models/appointment_service.dart';
 import '../../../core/api/api_client.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../repositories/appointment_repository.dart';
 
 // Repository provider

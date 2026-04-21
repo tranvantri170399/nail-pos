@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:nail_pos/core/models/transaction_item.dart';
+import 'package:nail_pos/core/services/printer_service.dart';
 import '../../../core/models/transaction.dart';
 import '../../../core/models/salon.dart';
 import '../../../core/providers/app_data_provider.dart';
@@ -16,8 +17,6 @@ class BillScreen extends ConsumerWidget {
     final pos = ref.watch(posProvider);
     final salon = ref.watch(salonProvider);
     final transaction = pos.lastTransaction;
-
-    print('BillScreen: lastTransaction = $transaction');
 
     if (transaction == null) {
       return Scaffold(
@@ -48,8 +47,13 @@ class BillScreen extends ConsumerWidget {
           },
         ),
         actions: [
+          IconButton(
+            tooltip: 'Chia sẻ/Tải PDF',
+            onPressed: () => _shareBill(context, ref, transaction, salon, pos),
+            icon: const Icon(Icons.share, color: Color(0xFFFF6B9D), size: 18),
+          ),
           TextButton.icon(
-            onPressed: () => _printBill(transaction, salon),
+            onPressed: () => _printBill(context, ref, transaction, salon, pos),
             icon: const Icon(Icons.print, size: 16, color: Color(0xFFFF6B9D)),
             label: const Text(
               'In bill',
@@ -96,8 +100,60 @@ class BillScreen extends ConsumerWidget {
     );
   }
 
-  void _printBill(Transaction transaction, Salon? salon) {
-    // TODO: kết nối máy in
+  Future<void> _printBill(
+    BuildContext context,
+    WidgetRef ref,
+    Transaction transaction,
+    Salon? salon,
+    PosState pos,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(printerServiceProvider)
+          .printBill(
+            transaction: transaction,
+            salon: salon,
+            customerName: pos.selectedCustomer?.name,
+            staffName: pos.selectedStaff?.name,
+          );
+    } catch (e, st) {
+      debugPrint('[BillScreen] printBill error: $e');
+      debugPrintStack(label: '[BillScreen] printBill stack', stackTrace: st);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Không thể mở chế độ in: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareBill(
+    BuildContext context,
+    WidgetRef ref,
+    Transaction transaction,
+    Salon? salon,
+    PosState pos,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(printerServiceProvider)
+          .shareBill(
+            transaction: transaction,
+            salon: salon,
+            customerName: pos.selectedCustomer?.name,
+            staffName: pos.selectedStaff?.name,
+          );
+    } catch (e, st) {
+      debugPrint('[BillScreen] shareBill error: $e');
+      debugPrintStack(label: '[BillScreen] shareBill stack', stackTrace: st);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Không thể chia sẻ PDF: $e'),
+        ),
+      );
+    }
   }
 }
 

@@ -159,7 +159,7 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: categories.length + 1, // +1 cho "Tất cả"
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
             return _buildCategoryTab(
@@ -194,7 +194,7 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade300,
@@ -333,7 +333,7 @@ class _ServicesPanelState extends ConsumerState<ServicesPanel> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade50,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade200,

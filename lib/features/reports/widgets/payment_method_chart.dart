@@ -26,13 +26,13 @@ class PaymentMethodChart extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
         ),
         child: Center(
           child: Text(
             'Không có dữ liệu',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ),
@@ -47,7 +47,7 @@ class PaymentMethodChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -73,7 +73,7 @@ class PaymentMethodChart extends StatelessWidget {
                       Text(
                         '${percentage.toStringAsFixed(1)}%',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -84,7 +84,7 @@ class PaymentMethodChart extends StatelessWidget {
                       Expanded(
                         child: LinearProgressIndicator(
                           value: percentage / 100,
-                          backgroundColor: theme.colorScheme.outline.withOpacity(0.1),
+                          backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.1),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             _getPaymentMethodColor(entry.key),
                           ),
@@ -102,7 +102,7 @@ class PaymentMethodChart extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

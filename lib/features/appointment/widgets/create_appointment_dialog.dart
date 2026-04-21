@@ -482,7 +482,7 @@ class _CreateAppointmentDialogState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${_startTime.format(context)}',
+                        _startTime.format(context),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -519,7 +519,7 @@ class _CreateAppointmentDialogState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${_endTime.format(context)}',
+                        _endTime.format(context),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,

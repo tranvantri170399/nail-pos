@@ -41,7 +41,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     final isStaffCollapsed = ref.watch(staffCollapseProvider);
 
     // Lắng nghe thanh toán thành công và chọn thợ
-    ref.listen<PosState>(posProvider, (_, next) {
+    ref.listen<PosState>(posProvider, (previous, next) {
       if (next.checkoutSuccess != null) {
         _showSuccessDialog(next.checkoutSuccess!);
       }
@@ -94,9 +94,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B9D20),
+                  color: const Color(0x20FF6B9D),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFF6B9D40)),
+                  border: Border.all(color: const Color(0x40FF6B9D)),
                 ),
                 child: Text(
                   user.salonName ?? "N/A",
@@ -305,7 +305,7 @@ class _StaffColumn extends ConsumerWidget {
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               itemCount: pos.staffList.length,
-              itemBuilder: (_, i) => _StaffCard(
+              itemBuilder: (context, i) => _StaffCard(
                 staff: pos.staffList[i],
                 isSelected: pos.selectedStaff?.id == pos.staffList[i].id,
                 onTap: () => ref
@@ -356,7 +356,7 @@ class _StaffRow extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               itemCount: pos.staffList.length,
-              itemBuilder: (_, i) => Padding(
+              itemBuilder: (context, i) => Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: _StaffCard(
                   staff: pos.staffList[i],
@@ -402,7 +402,7 @@ class _StaffCard extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isSelected
-                ? color.withOpacity(0.2)
+                ? color.withValues(alpha: 0.2)
                 : const Color(0xFF151520),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
@@ -415,7 +415,7 @@ class _StaffCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundColor: color.withOpacity(0.3),
+                backgroundColor: color.withValues(alpha: 0.3),
                 child: Text(
                   staff.name[0],
                   style: TextStyle(
@@ -447,7 +447,7 @@ class _StaffCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : const Color(0xFF151520),
+          color: isSelected ? color.withValues(alpha: 0.15) : const Color(0xFF151520),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF252535),
@@ -458,7 +458,7 @@ class _StaffCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: color.withOpacity(0.3),
+              backgroundColor: color.withValues(alpha: 0.3),
               child: Text(
                 staff.name[0],
                 style: TextStyle(
@@ -646,7 +646,7 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: categories.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        separatorBuilder: (context, index) => const SizedBox(width: 6),
         itemBuilder: (context, index) {
           if (index == 0) {
             return _buildTab(
@@ -682,7 +682,7 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : const Color(0xFF151520),
+          color: isSelected ? color.withValues(alpha: 0.15) : const Color(0xFF151520),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF252535),
@@ -795,7 +795,7 @@ class _ServiceGridState extends ConsumerState<_ServiceGrid> {
                 mainAxisSpacing: 8,
               ),
               itemCount: services.length,
-              itemBuilder: (_, i) {
+              itemBuilder: (context, i) {
                 final service = services[i];
                 final isSelected = widget.pos.selectedServices.any(
                   (s) => s.id == service.id,
@@ -843,7 +843,7 @@ class _ServiceCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : const Color(0xFF151520),
+          color: isSelected ? color.withValues(alpha: 0.15) : const Color(0xFF151520),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF252535),
@@ -1023,13 +1023,13 @@ class _CustomerCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF151520),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF4CAF5040)),
+        border: Border.all(color: const Color(0x404CAF50)),
       ),
       child: Row(
         children: [
           const CircleAvatar(
             radius: 16,
-            backgroundColor: Color(0xFF4CAF5020),
+            backgroundColor: Color(0x204CAF50),
             child: Icon(Icons.person, color: Color(0xFF4CAF50), size: 18),
           ),
           const SizedBox(width: 10),
@@ -1084,7 +1084,7 @@ class _CollapsedStaffCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color, width: 1.5),
         ),
@@ -1092,7 +1092,7 @@ class _CollapsedStaffCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: color.withOpacity(0.3),
+              backgroundColor: color.withValues(alpha: 0.3),
               child: Text(
                 staff.name[0],
                 style: TextStyle(
@@ -1926,7 +1926,7 @@ class _TipChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: selected
-              ? const Color(0xFFFF6B9D).withOpacity(0.15)
+              ? const Color(0xFFFF6B9D).withValues(alpha: 0.15)
               : const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(

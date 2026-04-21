@@ -80,7 +80,7 @@ class _AppointmentDetailDialogState
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getStatusColor().withOpacity(0.1),
+                    color: _getStatusColor().withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -329,10 +329,10 @@ class _AppointmentDetailDialogState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE74C3C).withOpacity(0.1),
+                  color: const Color(0xFFE74C3C).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: const Color(0xFFE74C3C).withOpacity(0.3),
+                    color: const Color(0xFFE74C3C).withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(

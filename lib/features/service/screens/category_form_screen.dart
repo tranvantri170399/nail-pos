@@ -90,7 +90,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withOpacity(0.1),
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFEF4444)),
                         ),
@@ -130,7 +130,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                           'Đang hoạt động',
                           style: TextStyle(color: Colors.white, fontSize: 14),
                         ),
-                        activeColor: const Color(0xFF10B981),
+                        activeThumbColor: const Color(0xFF10B981),
                       ),
                     ],
                     const SizedBox(height: 32),

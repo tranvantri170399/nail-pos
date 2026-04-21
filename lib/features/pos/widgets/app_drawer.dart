@@ -21,8 +21,9 @@ class AppDrawer extends ConsumerWidget {
     if (currentRoute == '/' && itemRoute == '/home') return true;
 
     // Handle sub-routes (for future expansion)
-    if (currentRoute.startsWith(itemRoute + '/') && itemRoute != '/')
+    if (currentRoute.startsWith('$itemRoute/') && itemRoute != '/') {
       return false;
+    }
 
     return false;
   }
@@ -278,7 +279,6 @@ class _DrawerItem extends StatelessWidget {
   final String subtitle;
   final String route;
   final bool isActive;
-  final int? badge;
 
   const _DrawerItem({
     required this.icon,
@@ -287,7 +287,6 @@ class _DrawerItem extends StatelessWidget {
     required this.subtitle,
     required this.route,
     this.isActive = false,
-    this.badge,
   });
 
   @override
@@ -300,7 +299,7 @@ class _DrawerItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? iconBg.withOpacity(0.2) : Colors.transparent,
+          color: isActive ? iconBg.withValues(alpha: 0.2) : Colors.transparent,
           border: Border(
             left: isActive
                 ? BorderSide(color: iconBg, width: 3)
@@ -342,22 +341,6 @@ class _DrawerItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B9D),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$badge',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             if (isActive) Icon(Icons.check_circle, color: iconBg, size: 18),
           ],
         ),

@@ -131,6 +131,6 @@ final filteredCustomersProvider = Provider.family<List<Customer>, int>((
       }).toList();
     },
     loading: () => [],
-    error: (_, __) => [],
+    error: (error, stackTrace) => [],
   );
 });

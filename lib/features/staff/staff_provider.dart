@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/staff.dart';
 import '../../core/providers/app_data_provider.dart';
 import '../../core/api/api_client.dart';
-import '../auth/providers/auth_provider.dart';
 import 'staff_repository.dart';
 
 final staffRepositoryProvider = Provider<StaffRepository>((ref) {

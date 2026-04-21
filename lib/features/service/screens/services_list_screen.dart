@@ -207,7 +207,7 @@ class _CategoryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _getColorFromHex(category.color).withOpacity(0.1),
+              color: _getColorFromHex(category.color).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -259,7 +259,8 @@ class _CategoryCard extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: category.services.length,
-              separatorBuilder: (_, __) => Divider(color: Colors.grey[800], height: 1),
+              separatorBuilder: (context, index) =>
+                  Divider(color: Colors.grey[800], height: 1),
               itemBuilder: (context, index) {
                 final service = category.services[index];
                 return _ServiceItem(

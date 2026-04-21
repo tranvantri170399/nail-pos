@@ -8,6 +8,7 @@ import '../../features/appointment/screens/appointment_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/customer/screens/customer_form_screen.dart';
 import '../../features/customer/screens/customer_list_screen.dart';
+import '../../features/dashboard/screens/owner_dashboard_screen.dart';
 import '../../features/pos/screens/bill_screen.dart';
 import '../../features/pos/screens/pos_screen.dart';
 import '../../features/reports/screens/revenue_report_screen.dart';
@@ -16,7 +17,6 @@ import '../../features/service/screens/service_form_screen.dart';
 import '../../features/service/screens/services_list_screen.dart';
 import '../../features/staff/screens/staff_form_screen.dart';
 import '../../features/staff/screens/staff_list_screen.dart';
-import '../widgets/bottom_navigation_bar.dart';
 
 // ════════════════════════════════════════════════════
 // ROUTES
@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (authState is AuthLoginLoading) return null;
       if (authState is AuthAuthenticated) {
         if (isLoginPage) {
-          return authState.user.isOwner ? AppRoutes.home : AppRoutes.dashboard;
+          return authState.user.isOwner ? AppRoutes.dashboard : AppRoutes.home;
         }
       }
       return null;
@@ -83,7 +83,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.dashboard,
-        builder: (context, state) => const OwnerDashboardPlaceholder(),
+        builder: (context, state) => const OwnerDashboardScreen(),
       ),
       GoRoute(
         path: AppRoutes.bill,
@@ -137,100 +137,3 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// ════════════════════════════════════════════════════
-// PLACEHOLDER — Owner Dashboard (làm sau)
-// ════════════════════════════════════════════════════
-class OwnerDashboardPlaceholder extends ConsumerWidget {
-  const OwnerDashboardPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D0D12),
-      bottomNavigationBar:
-          const PosBottomNavigationBar(), // Use POS navigation as fallback
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('👑', style: TextStyle(fontSize: 60)),
-            const SizedBox(height: 16),
-            Text(
-              'Chào ${user?.name ?? "chủ tiệm"}!',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              user?.salonName ?? '',
-              style: const TextStyle(color: Color(0xFF555566)),
-            ),
-            const SizedBox(height: 32),
-
-            // Navigation buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.go(AppRoutes.revenueReport),
-                      icon: const Icon(Icons.bar_chart),
-                      label: const Text('Báo cáo doanh thu'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.go(AppRoutes.home),
-                      icon: const Icon(Icons.point_of_sale),
-                      label: const Text('Màn hình POS'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3B82F6),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => ref.read(authProvider.notifier).logout(),
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Đăng xuất'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFEF4444),
-                        side: const BorderSide(color: Color(0xFFEF4444)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
