@@ -20,7 +20,7 @@ class PosRepository {
       ApiEndpoints.staffs,
       queryParameters: {'salonId': salonId}, // ← thêm dòng này
     );
-    return (response.data as List).map((json) => Staff.fromJson(json)).toList();
+    return (response.data['data'] as List).map((json) => Staff.fromJson(json)).toList();
   }
 
   // ── Lấy danh sách dịch vụ ───────────────────────────
@@ -29,7 +29,7 @@ class PosRepository {
       ApiEndpoints.services,
       queryParameters: {'salonId': salonId},
     );
-    return (response.data as List)
+    return (response.data['data'] as List)
         .map((json) => Service.fromJson(json))
         .toList();
   }
@@ -53,9 +53,10 @@ class PosRepository {
   Future<Transaction> createTransaction(
     Transaction transaction, {
     List<Map<String, dynamic>>? itemsData,
+    List<Map<String, dynamic>>? paymentsData,
   }) async {
     final data = itemsData != null
-        ? transaction.toJsonWithItems(itemsData)
+        ? transaction.toJsonWithItems(itemsData, paymentsData: paymentsData)
         : transaction.toJson();
 
     final response = await _dio.post(ApiEndpoints.transactions, data: data);

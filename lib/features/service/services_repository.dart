@@ -14,7 +14,7 @@ class ServicesRepository {
       ApiEndpoints.serviceCategories,
       queryParameters: {'salonId': salonId},
     );
-    return (response.data as List)
+    return (response.data['data'] as List)
         .map((e) => ServiceCategory.fromJson(e))
         .toList();
   }
@@ -25,7 +25,7 @@ class ServicesRepository {
       ApiEndpoints.services,
       queryParameters: {'salonId': salonId},
     );
-    return (response.data as List).map((e) => Service.fromJson(e)).toList();
+    return (response.data['data'] as List).map((e) => Service.fromJson(e)).toList();
   }
 
   // Tạo category mới

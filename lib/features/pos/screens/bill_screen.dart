@@ -427,6 +427,29 @@ class _BillCard extends StatelessWidget {
             ),
           ],
         ),
+        if (transaction.payments.length > 1) ...[
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFF252535)),
+          const SizedBox(height: 8),
+          const Row(
+            children: [
+              Text(
+                'CHI TIẾT THANH TOÁN',
+                style: TextStyle(color: Color(0xFF555566), fontSize: 10, letterSpacing: 1.2),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...transaction.payments.map((p) => _buildSummaryRow(
+            switch(p.paymentMethod) {
+              'cash' => 'Tiền mặt',
+              'card' => 'Thẻ',
+              'transfer' => 'Chuyển khoản',
+              _ => p.paymentMethod,
+            },
+            '${vnd.format(p.amount)}đ',
+          )),
+        ],
       ],
     );
   }
@@ -461,12 +484,17 @@ class _BillCard extends StatelessWidget {
   }
 
   Widget _buildPaymentBadge() {
-    final method = switch (transaction.paymentMethod) {
-      'cash' => 'Tiền mặt',
-      'card' => 'Thẻ',
-      'transfer' => 'Chuyển khoản',
-      _ => transaction.paymentMethod,
-    };
+    String method = '';
+    if (transaction.payments.length > 1) {
+      method = 'Nhiều phương thức';
+    } else {
+      method = switch (transaction.paymentMethod) {
+        'cash' => 'Tiền mặt',
+        'card' => 'Thẻ',
+        'transfer' => 'Chuyển khoản',
+        _ => transaction.paymentMethod,
+      };
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),

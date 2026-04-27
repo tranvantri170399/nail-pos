@@ -121,7 +121,7 @@ class ReportsRepository {
         ApiEndpoints.transactions,
         queryParameters: {'salonId': salonId, 'date': _formatDate(date)},
       );
-      return (response.data as List)
+      return (response.data['data'] as List)
           .map((e) => Transaction.fromJson(e))
           .toList();
     } catch (e) {
@@ -145,7 +145,7 @@ class ReportsRepository {
           'endDate': _formatDate(endDate),
         },
       );
-      return (response.data as List)
+      return (response.data['data'] as List)
           .map((e) => Transaction.fromJson(e))
           .toList();
     } catch (e) {

@@ -9,6 +9,7 @@ import '../../../core/models/transaction.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers/app_data_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../shifts/providers/shifts_provider.dart';
 import '../repositories/pos_repository.dart';
 
 // ════════════════════════════════════════════════════
@@ -33,7 +34,10 @@ class PosState {
 
   // Tip / Discount / Tax / Cash
   final double tipAmount;
-  final double discountAmount;
+  final String discountType; // 'fixed' | 'percentage'
+  final double discountValue; // Amount or Percentage value
+  final double discountAmount; // Calculated amount
+  final String? discountReason;
   final double taxRate; // VD: 0.08 = 8%
   final double cashReceived;
 
@@ -44,7 +48,8 @@ class PosState {
   final bool isCheckingOut;
   final String? error;
   final String? checkoutSuccess; // Mã hoá đơn sau khi thanh toán
-  final String paymentMethod; // Phương thức thanh toán đang chọn
+  final String paymentMethod; // (Legacy) Phương thức thanh toán đang chọn
+  final List<Map<String, dynamic>> splitPayments; // [{'method': 'cash', 'amount': 100}, ...]
   final Transaction? lastTransaction;
 
   const PosState({
@@ -55,7 +60,10 @@ class PosState {
     this.selectedServices = const [],
     this.selectedCustomer,
     this.tipAmount = 0,
+    this.discountType = 'fixed',
+    this.discountValue = 0,
     this.discountAmount = 0,
+    this.discountReason,
     this.taxRate = 0,
     this.cashReceived = 0,
     this.isLoadingStaffs = false,
@@ -65,6 +73,7 @@ class PosState {
     this.error,
     this.checkoutSuccess,
     this.paymentMethod = 'cash',
+    this.splitPayments = const [],
     this.lastTransaction,
   });
 
@@ -100,7 +109,10 @@ class PosState {
     List<Service>? selectedServices,
     Customer? selectedCustomer,
     double? tipAmount,
+    String? discountType,
+    double? discountValue,
     double? discountAmount,
+    String? discountReason,
     double? taxRate,
     double? cashReceived,
     bool? isLoadingStaffs,
@@ -110,6 +122,7 @@ class PosState {
     String? error,
     String? checkoutSuccess,
     String? paymentMethod,
+    List<Map<String, dynamic>>? splitPayments,
     bool clearStaff = false,
     bool clearCustomer = false,
     bool clearError = false,
@@ -126,7 +139,10 @@ class PosState {
           ? null
           : (selectedCustomer ?? this.selectedCustomer),
       tipAmount: tipAmount ?? this.tipAmount,
+      discountType: discountType ?? this.discountType,
+      discountValue: discountValue ?? this.discountValue,
       discountAmount: discountAmount ?? this.discountAmount,
+      discountReason: discountReason ?? this.discountReason,
       taxRate: taxRate ?? this.taxRate,
       cashReceived: cashReceived ?? this.cashReceived,
       isLoadingStaffs: isLoadingStaffs ?? this.isLoadingStaffs,
@@ -138,6 +154,7 @@ class PosState {
           ? null
           : (checkoutSuccess ?? this.checkoutSuccess),
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      splitPayments: splitPayments ?? this.splitPayments,
       lastTransaction: lastTransaction ?? this.lastTransaction,
     );
   }
@@ -207,8 +224,12 @@ class PosNotifier extends StateNotifier<PosState> {
       staffList: state.staffList,
       serviceList: state.serviceList,
       paymentMethod: 'cash', // Reset về mặc định
+      splitPayments: const [],
       tipAmount: 0,
+      discountType: 'fixed',
+      discountValue: 0,
       discountAmount: 0,
+      discountReason: null,
       taxRate: 0,
       cashReceived: 0,
     );
@@ -230,9 +251,19 @@ class PosNotifier extends StateNotifier<PosState> {
   }
 
   // ── Đặt giảm giá ─────────────────────────────────────
-  void setDiscount(double amount) {
+  void setDiscount({required String type, required double value, String? reason}) {
     final max = state.subtotal + state.tipAmount;
+    double amount = 0;
+    if (type == 'percentage') {
+      amount = (state.subtotal * value / 100).roundToDouble();
+    } else {
+      amount = value;
+    }
+    
     state = state.copyWith(
+      discountType: type,
+      discountValue: value,
+      discountReason: reason,
       discountAmount: amount < 0 ? 0 : (amount > max ? max : amount),
     );
   }
@@ -285,6 +316,17 @@ class PosNotifier extends StateNotifier<PosState> {
     state = state.copyWith(paymentMethod: method);
   }
 
+  // ── Split Payments ──────────────────────────────────
+  void addSplitPayment(String method, double amount) {
+    final current = List<Map<String, dynamic>>.from(state.splitPayments);
+    current.add({'method': method, 'amount': amount});
+    state = state.copyWith(splitPayments: current);
+  }
+  
+  void clearSplitPayments() {
+    state = state.copyWith(splitPayments: const []);
+  }
+
   // ── Thanh toán ───────────────────────────────────────
   Future<void> checkout({String? note}) async {
     if (!state.canCheckout) return;
@@ -328,12 +370,18 @@ class PosNotifier extends StateNotifier<PosState> {
       final transaction = Transaction.create(
         appointmentId: appointmentId,
         salonId: state.salonId,
+        shiftId: _ref.read(shiftsProvider).currentShift?.id,
+        customerId: state.selectedCustomer?.id,
         subtotal: state.subtotal,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountReason: state.discountReason,
         discountAmount: state.discountAmount,
         tipAmount: state.tipAmount,
         taxAmount: state.taxAmount,
+        taxRate: state.taxRate,
         totalAmount: state.grandTotal,
-        paymentMethod: state.paymentMethod, // ← Dùng phương thức đã chọn
+        paymentMethod: state.splitPayments.isNotEmpty ? 'split' : state.paymentMethod, // ← Dùng phương thức đã chọn
         status: 'paid',
         note: note,
         paidAt: now,
@@ -342,6 +390,9 @@ class PosNotifier extends StateNotifier<PosState> {
       Transaction createdTransaction = await _repo.createTransaction(
         transaction,
         itemsData: itemsData,
+        paymentsData: state.splitPayments.isNotEmpty ? state.splitPayments : [
+          {'method': state.paymentMethod, 'amount': state.grandTotal}
+        ],
       );
       state = state.copyWith(
         isCheckingOut: false,

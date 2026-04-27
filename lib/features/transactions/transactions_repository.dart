@@ -4,37 +4,60 @@ import '../../core/api/api_endpoints.dart';
 import '../../core/models/transaction.dart';
 import '../../core/models/transaction_item.dart';
 
+import '../../core/models/transaction_payment.dart';
+
 class CreateTransactionDto {
-  final int appointmentId;
+  final int? appointmentId;
   final int salonId;
+  final int? customerId;
+  final int? shiftId;
+  
   final double subtotal;
-  final double discountAmount;
+  final String? discountType;
+  final double? discountValue;
+  final double? discountAmount;
+  final String? discountReason;
+  
   final double tipAmount;
   final double taxAmount;
+  
   final String paymentMethod;
+  final List<TransactionPayment>? payments;
   final String? note;
   final List<TransactionItem> items;
 
   CreateTransactionDto({
-    required this.appointmentId,
+    this.appointmentId,
     required this.salonId,
+    this.customerId,
+    this.shiftId,
     required this.subtotal,
-    this.discountAmount = 0,
+    this.discountType,
+    this.discountValue,
+    this.discountAmount,
+    this.discountReason,
     this.tipAmount = 0,
     this.taxAmount = 0,
     required this.paymentMethod,
+    this.payments,
     this.note,
     required this.items,
   });
 
   Map<String, dynamic> toJson() => {
-    'appointmentId': appointmentId,
-    'salonId': salonId,
+    'appointment_id': appointmentId,
+    'salon_id': salonId,
+    'customer_id': customerId,
+    'shift_id': shiftId,
     'subtotal': subtotal,
-    'discountAmount': discountAmount,
-    'tipAmount': tipAmount,
-    'taxAmount': taxAmount,
-    'paymentMethod': paymentMethod,
+    'discount_type': discountType,
+    'discount_value': discountValue,
+    'discount_amount': discountAmount,
+    'discount_reason': discountReason,
+    'tip_amount': tipAmount,
+    'tax_amount': taxAmount,
+    'payment_method': paymentMethod,
+    if (payments != null) 'payments': payments!.map((p) => p.toJson()).toList(),
     'note': note,
     'items': items.map((i) => i.toJson()).toList(),
   };
@@ -60,7 +83,7 @@ class TransactionsRepository {
         ...?(date == null ? null : {'date': date}),
       },
     );
-    return (response.data as List).map((e) => Transaction.fromJson(e)).toList();
+    return (response.data['data'] as List).map((e) => Transaction.fromJson(e)).toList();
   }
 
   Future<Map<String, dynamic>> getDailyReport(int salonId, String date) async {

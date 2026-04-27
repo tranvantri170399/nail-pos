@@ -13,7 +13,7 @@ class CustomerRepository {
       ApiEndpoints.customers,
       queryParameters: {'salonId': salonId},
     );
-    return (response.data as List)
+    return (response.data['data'] as List)
         .map((e) => Customer.fromJson(e))
         .toList();
   }

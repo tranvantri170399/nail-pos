@@ -49,4 +49,11 @@ class ApiEndpoints {
   static String transactionByAppointment(int id) =>
       '/transactions/appointment/$id';
   static String transactionRefund(int id) => '/transactions/$id/refund';
+
+  // ── Shifts ───────────────────────────────────────────────
+  static const String shifts = '/shifts';
+  static const String shiftCurrent = '/shifts/current';
+  static const String shiftOpen = '/shifts/open';
+  static String shiftClose(int id) => '/shifts/$id/close';
+  static String shiftCashMovement(int id) => '/shifts/$id/cash-movement';
 }

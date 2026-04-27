@@ -21,7 +21,7 @@ class AppointmentRepository {
   // Lấy tất cả appointments
   Future<List<Appointment>> getAll() async {
     final response = await _dio.get(ApiEndpoints.appointments);
-    return (response.data as List).map((e) => Appointment.fromJson(e)).toList();
+    return (response.data['data'] as List).map((e) => Appointment.fromJson(e)).toList();
   }
 
   // Tìm customer theo phone

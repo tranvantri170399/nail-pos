@@ -17,6 +17,7 @@ import '../../features/service/screens/service_form_screen.dart';
 import '../../features/service/screens/services_list_screen.dart';
 import '../../features/staff/screens/staff_form_screen.dart';
 import '../../features/staff/screens/staff_list_screen.dart';
+import '../../features/shifts/screens/shift_management_screen.dart';
 
 // ════════════════════════════════════════════════════
 // ROUTES
@@ -41,6 +42,9 @@ class AppRoutes {
   // Customer routes
   static const customers = '/customers';
   static const customerForm = '/customers/form';
+
+  // Shift routes
+  static const shifts = '/shifts';
 }
 
 // ════════════════════════════════════════════════════
@@ -132,6 +136,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.customerForm,
         builder: (context, state) =>
             CustomerFormScreen(customer: state.extra as dynamic),
+      ),
+      // Shift routes
+      GoRoute(
+        path: AppRoutes.shifts,
+        builder: (context, state) => const ShiftManagementScreen(),
       ),
     ],
   );

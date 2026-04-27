@@ -80,6 +80,14 @@ class AppDrawer extends ConsumerWidget {
                   label: 'Quản lý',
                   items: [
                     _DrawerItem(
+                      icon: '💵',
+                      iconBg: const Color(0xFF1E1A0A),
+                      title: 'Quản lý Ca',
+                      subtitle: 'Tiền mặt & két',
+                      route: '/shifts',
+                      isActive: _isRouteActive(currentRoute, '/shifts'),
+                    ),
+                    _DrawerItem(
                       icon: '👥',
                       iconBg: const Color(0xFF0A1E14),
                       title: 'Nhân viên',

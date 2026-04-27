@@ -13,7 +13,7 @@ class StaffRepository {
       ApiEndpoints.staffs,
       queryParameters: {'salonId': salonId},
     );
-    return (response.data as List)
+    return (response.data['data'] as List)
         .map((e) => Staff.fromJson(e))
         .toList();
   }
