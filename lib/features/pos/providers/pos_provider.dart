@@ -334,7 +334,7 @@ class PosNotifier extends StateNotifier<PosState> {
         taxAmount: state.taxAmount,
         totalAmount: state.grandTotal,
         paymentMethod: state.paymentMethod, // ← Dùng phương thức đã chọn
-        status: 'completed', // Backend sẽ override
+        status: 'paid',
         note: note,
         paidAt: now,
       );
