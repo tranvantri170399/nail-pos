@@ -91,7 +91,7 @@ class RevenueReportNotifier extends Notifier<RevenueReportState> {
 
       state = state.copyWith(
         isLoading: false,
-        dailyReport: reportData,
+        dailyReport: _enrichReport(reportData, transactions),
         transactions: transactions,
       );
     } catch (e) {
@@ -117,7 +117,7 @@ class RevenueReportNotifier extends Notifier<RevenueReportState> {
 
       state = state.copyWith(
         isLoading: false,
-        dailyReport: reportData,
+        dailyReport: _enrichReport(reportData, transactions),
         transactions: transactions,
       );
     } catch (e) {
@@ -126,6 +126,43 @@ class RevenueReportNotifier extends Notifier<RevenueReportState> {
         errorMessage: e.toString().replaceAll('Exception: ', ''),
       );
     }
+  }
+
+  /// Bổ sung paymentMethodBreakdown và hourlyBreakdown từ transactions
+  Map<String, dynamic> _enrichReport(
+    Map<String, dynamic> reportData,
+    List<Transaction> transactions,
+  ) {
+    final paymentMethodBreakdown = <String, double>{};
+    for (final t in transactions) {
+      paymentMethodBreakdown[t.paymentMethod] =
+          (paymentMethodBreakdown[t.paymentMethod] ?? 0) + t.totalAmount;
+    }
+
+    final hourlyMap = <int, Map<String, dynamic>>{};
+    for (final t in transactions) {
+      if (t.paidAt == null) continue;
+      final hour = t.paidAt!.toLocal().hour;
+      hourlyMap[hour] ??= {'hour': hour, 'revenue': 0.0, 'transactionCount': 0};
+      hourlyMap[hour]!['revenue'] =
+          (hourlyMap[hour]!['revenue'] as double) + t.totalAmount;
+      hourlyMap[hour]!['transactionCount'] =
+          (hourlyMap[hour]!['transactionCount'] as int) + 1;
+    }
+    final hourlyBreakdown = hourlyMap.entries
+        .map((e) => e.value)
+        .toList()
+      ..sort((a, b) => (a['hour'] as int).compareTo(b['hour'] as int));
+
+    return {
+      ...reportData,
+      'totalRevenue': reportData['totalRevenue'] ??
+          transactions.fold<double>(0, (s, t) => s + t.totalAmount),
+      'totalTransactions':
+          reportData['totalTransactions'] ?? transactions.length,
+      'paymentMethodBreakdown': paymentMethodBreakdown,
+      'hourlyBreakdown': hourlyBreakdown,
+    };
   }
 
   void reset() => state = const RevenueReportState();
