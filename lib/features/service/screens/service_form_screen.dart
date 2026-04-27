@@ -161,6 +161,10 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng nhập giá';
                               }
+                              final price = double.tryParse(value);
+                              if (price == null || price <= 0) {
+                                return 'Giá phải lớn hơn 0';
+                              }
                               return null;
                             },
                           ),
@@ -175,6 +179,10 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng nhập thời gian';
+                              }
+                              final duration = int.tryParse(value);
+                              if (duration == null || duration <= 0) {
+                                return 'Thời gian phải lớn hơn 0';
                               }
                               return null;
                             },

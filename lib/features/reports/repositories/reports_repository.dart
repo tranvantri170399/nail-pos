@@ -52,6 +52,13 @@ class ReportsRepository {
     }
   }
 
+  Future<Transaction> refundTransaction(int transactionId) async {
+    final response = await _dio.patch(
+      ApiEndpoints.transactionRefund(transactionId),
+    );
+    return Transaction.fromJson(response.data);
+  }
+
   // Helper method to calculate report from transactions (fallback)
   Map<String, dynamic> _calculateReportFromTransactions(
     List<Transaction> transactions,

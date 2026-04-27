@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/printer_service.dart';
 import '../../../core/models/transaction.dart';
 import '../../../core/providers/app_data_provider.dart';
+import '../providers/revenue_report_provider.dart';
 
 class TransactionList extends StatelessWidget {
   final List<Transaction> transactions;
@@ -450,7 +451,7 @@ class TransactionDetailDialog extends ConsumerWidget {
                                       ),
                                     ),
                                     Text(
-                                      'HH: ${(item.commissionRate * 100).toStringAsFixed(0)}%'
+                                      'HH: ${item.commissionRate.toStringAsFixed(0)}%'
                                       ' · ${vnd.format(item.commissionAmount)}đ',
                                       style: const TextStyle(
                                         color: Color(0xFF555566),
@@ -597,6 +598,87 @@ class TransactionDetailDialog extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (transaction.status.toLowerCase() == 'paid') ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF1A1A28),
+                          title: const Text(
+                            'Xác nhận hoàn tiền',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          content: Text(
+                            'Bạn có chắc muốn hoàn tiền đơn #${transaction.id}?',
+                            style: const TextStyle(color: Color(0xFF888899)),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Hủy'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text(
+                                'Hoàn tiền',
+                                style: TextStyle(color: Color(0xFFEF4444)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+
+                      try {
+                        await ref
+                            .read(reportsRepositoryProvider)
+                            .refundTransaction(transaction.id);
+                        final reportState = ref.read(revenueReportProvider);
+                        final startDate = reportState.startDate;
+                        final endDate = reportState.endDate;
+                        final salonId = salon?.id ?? transaction.salonId;
+                        if (startDate != null && endDate != null) {
+                          if (startDate.year == endDate.year &&
+                              startDate.month == endDate.month &&
+                              startDate.day == endDate.day) {
+                            await ref
+                                .read(revenueReportProvider.notifier)
+                                .getDailyReport(salonId, startDate);
+                          } else {
+                            await ref
+                                .read(revenueReportProvider.notifier)
+                                .generateReport(salonId, startDate, endDate);
+                          }
+                        }
+                        navigator.pop();
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Đã hoàn tiền giao dịch')),
+                        );
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Không thể hoàn tiền: $e')),
+                        );
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFEF4444),
+                      side: const BorderSide(color: Color(0xFFEF4444)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.undo, size: 16),
+                    label: const Text('Hoàn tiền'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
