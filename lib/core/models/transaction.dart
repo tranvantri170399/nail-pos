@@ -72,7 +72,9 @@ class Transaction {
       paymentMethod: json['paymentMethod'] ?? 'cash',
       status: json['status'] ?? 'pending',
       note: json['note'],
-      paidAt: json['paidAt'] != null ? DateTime.parse(json['paidAt']) : null,
+      paidAt: json['paidAt'] != null
+          ? DateTime.parse(json['paidAt']).toLocal()
+          : null,
       items: (json['items'] as List<dynamic>? ?? [])
           .map((i) => TransactionItem.fromJson(i))
           .toList(),
@@ -90,7 +92,7 @@ class Transaction {
     'payment_method': paymentMethod,
     'status': status, // Backend sẽ override thành 'paid'
     'note': note,
-    'paid_at': paidAt?.toIso8601String(), // Backend sẽ set new Date()
+    'paid_at': paidAt?.toUtc().toIso8601String(), // Backend sẽ set new Date()
   };
 
   // Method để tạo JSON với items data
@@ -106,7 +108,7 @@ class Transaction {
         'payment_method': paymentMethod,
         'status': status, // Backend sẽ override thành 'paid'
         'note': note,
-        'paid_at': paidAt?.toIso8601String(), // Backend sẽ set new Date()
+        'paid_at': paidAt?.toUtc().toIso8601String(), // Backend sẽ set new Date()
         'items': itemsData, // Gửi items data thô
       };
 }

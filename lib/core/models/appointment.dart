@@ -50,7 +50,7 @@ class Appointment {
       status: json['status'],
       note: json['note'],
       source: json['source'],
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
       staff: json['staff'] != null ? Staff.fromJson(json['staff']) : null,
       customer: json['customer'] != null
           ? Customer.fromJson(json['customer'])
