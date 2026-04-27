@@ -186,6 +186,14 @@ class _StaffCard extends StatelessWidget {
               children: [
                 _buildRoleBadge(staff.role),
                 const SizedBox(width: 8),
+                Text(
+                  'HH: ${staff.commissionRate.toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    color: Color(0xFF10B981),
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 if (!staff.isActive)
                   Container(
                     padding: const EdgeInsets.symmetric(

@@ -69,7 +69,7 @@ class AppointmentRepository {
     int appointmentId,
   ) async {
     final response = await _dio.get(
-      '${ApiEndpoints.appointments}/$appointmentId/services',
+      ApiEndpoints.appointmentServicesByAppointment(appointmentId),
     );
     return (response.data as List)
         .map((e) => AppointmentService.fromJson(e))

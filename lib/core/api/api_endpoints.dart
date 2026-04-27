@@ -34,6 +34,14 @@ class ApiEndpoints {
   static String serviceById(int id) => '/services/$id';
   static const String servicesByCategory = '/services/by-category';
 
+  // Appointment Services
+  static const String appointmentServices = '/appointment-services';
+  static String appointmentServicesByAppointment(int id) =>
+      '/appointment-services/appointment/$id';
+  static String appointmentServicesTotals(int id) =>
+      '/appointment-services/appointment/$id/totals';
+  static String appointmentServiceById(int id) => '/appointment-services/$id';
+
   // Transactions
   static const String transactions = '/transactions';
   static const String transactionItems = '/transaction-items';

@@ -25,8 +25,10 @@ class Staff {
       phone: json['phone'],
       color: json['color'],
       role: json['role'] ?? 'junior',
-      commissionRate: double.tryParse(json['commission_rate'].toString()) ?? 0,
-      isActive: json['is_active'] ?? true,
+      commissionRate: double.tryParse(
+        (json['commissionRate'] ?? json['commission_rate'] ?? 0).toString(),
+      ) ?? 0,
+      isActive: json['isActive'] ?? json['is_active'] ?? true,
     );
   }
 }

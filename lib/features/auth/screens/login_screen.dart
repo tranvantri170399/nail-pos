@@ -227,8 +227,8 @@ class OwnerLoginForm extends ConsumerStatefulWidget {
 }
 
 class _OwnerLoginFormState extends ConsumerState<OwnerLoginForm> {
-  final _phoneCtrl = TextEditingController(text: '0967890123');
-  final _passwordCtrl = TextEditingController(text: 'Admin@1234');
+  final _phoneCtrl = TextEditingController(text: '0901234567');
+  final _passwordCtrl = TextEditingController(text: 'Admin@123');
   bool _obscure = true;
 
   @override
